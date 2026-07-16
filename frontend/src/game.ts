@@ -111,7 +111,7 @@ async function refreshRound(): Promise<void> {
   ) {
     update({
       phase: "spectator",
-      statusNote: "Out of guesses — the word stays sealed 🔒 while others play.",
+      statusNote: "Out of guesses — the word stays sealed while others play.",
     });
   }
 }
@@ -148,7 +148,7 @@ async function decryptRow(raw: GuessRaw, row: GuessRow): Promise<void> {
   row.win = win === true;
   update({});
   if (row.win && getState().phase !== "paid" && getState().phase !== "claiming") {
-    update({ phase: "won", statusNote: "You cracked the vault! 🎉 Claim the pot." });
+    update({ phase: "won", statusNote: "All green — the vault is yours. Claim the pot." });
     events.emit("win", { guessIndex: row.guessIndex });
   }
 }
@@ -197,14 +197,14 @@ export async function submitGuess(): Promise<void> {
   }
 
   try {
-    update({ phase: "sealing", statusNote: "🔒 Sending your guess…", error: null });
+    update({ phase: "sealing", statusNote: "Sending your guess…", error: null });
     const hash = await sendGuess(s.round.id, toLetters(word));
 
-    update({ phase: "computing", statusNote: "🧠 Computing hints on ciphertext in the TEE…" });
+    update({ phase: "computing", statusNote: "Computing hints on ciphertext in the TEE…" });
     const receipt = await waitForTx(hash);
     if (receipt.status !== "success") throw new Error("Guess transaction reverted");
 
-    update({ typed: "", phase: "decrypting", statusNote: "🔓 Decrypting colors via the KMS…" });
+    update({ typed: "", phase: "decrypting", statusNote: "Decrypting colours via the KMS…" });
     await refreshRound(); // picks up the new row and starts decrypting it
 
     // Back to idle once colors resolve (decryptRow flips phase on a win).
@@ -239,18 +239,18 @@ export async function claimPot(): Promise<void> {
   if (!winningRow) return;
 
   try {
-    update({ phase: "claiming", statusNote: "🔑 Fetching the KMS proof…" });
+    update({ phase: "claiming", statusNote: "Fetching the KMS proof…" });
     const guesses = await readGuesses(s.round.id);
     const raw = guesses[winningRow.guessIndex];
     const { value, decryptionProof } = await publicDecryptWithRetry(raw.winHandle as Hex);
     if (value !== true) throw new Error("Win handle did not decrypt to true");
 
-    update({ statusNote: "💰 Claiming the pot (proof verified on-chain)…" });
+    update({ statusNote: "Claiming the pot (proof verified on-chain)…" });
     const hash = await sendClaim(s.round.id, BigInt(winningRow.guessIndex), decryptionProof);
     const receipt = await waitForTx(hash);
     if (receipt.status !== "success") throw new Error("Claim transaction reverted");
 
-    update({ phase: "paid", statusNote: "Pot paid out 🎉 — revealing the word…" });
+    update({ phase: "paid", statusNote: "Pot paid out — revealing the word…" });
     events.emit("paid", { txHash: hash });
     await refreshRound();
   } catch (error: any) {
@@ -281,8 +281,9 @@ async function onRoundSettled(round: RoundView, guesses: GuessRaw[]): Promise<vo
     });
   }
 
-  // Decrypt the revealed secret exactly once per round.
-  if (round.revealedWord === null) {
+  // Decrypt the revealed secret exactly once per round. Needs the handle
+  // client (wallet-backed) — spectators see the sealed badge until they connect.
+  if (round.revealedWord === null && getState().account) {
     const raw = await readRound(round.id);
     const handles = raw.revealedLetterHandles.filter(
       (h) => h !== "0x0000000000000000000000000000000000000000000000000000000000000000",
@@ -295,7 +296,12 @@ async function onRoundSettled(round: RoundView, guesses: GuessRaw[]): Promise<vo
         }),
       );
       const revealedWord = toWord(letters);
-      update({ round: { ...getState().round!, revealedWord } });
+      const phase = getState().phase;
+      const settledNote =
+        phase === "solved-by-other" || phase === "expired"
+          ? "Round settled — the word is unsealed for audit."
+          : getState().statusNote;
+      update({ round: { ...getState().round!, revealedWord }, statusNote: settledNote });
       events.emit("revealed", { word: revealedWord, guesses });
     }
   }

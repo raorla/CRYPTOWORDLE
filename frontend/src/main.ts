@@ -44,16 +44,20 @@ const soundBtn = document.getElementById("btn-sound") as HTMLButtonElement;
 const themeBtn = document.getElementById("btn-theme") as HTMLButtonElement;
 const helpBtn = document.getElementById("btn-help") as HTMLButtonElement;
 
-soundBtn.textContent = soundEnabled() ? "🔊" : "🔇";
-themeBtn.textContent = currentTheme() === "dark" ? "🌙" : "☀️";
-(document.getElementById("contract-link") as HTMLAnchorElement).href =
-  `${ETHERSCAN}/address/${CONTRACT_ADDRESS}`;
+soundBtn.textContent = soundEnabled() ? "♪" : "∅";
+themeBtn.textContent = currentTheme() === "dark" ? "☾" : "☀";
+
+const contractHref = `${ETHERSCAN}/address/${CONTRACT_ADDRESS}`;
+const ledgerLink = document.getElementById("contract-link") as HTMLAnchorElement;
+ledgerLink.href = contractHref;
+ledgerLink.textContent = `${CONTRACT_ADDRESS.slice(0, 6)}…${CONTRACT_ADDRESS.slice(-4)} ↗`;
+(document.getElementById("footer-contract-link") as HTMLAnchorElement).href = contractHref;
 
 soundBtn.addEventListener("click", () => {
-  soundBtn.textContent = toggleSound() ? "🔊" : "🔇";
+  soundBtn.textContent = toggleSound() ? "♪" : "∅";
 });
 themeBtn.addEventListener("click", () => {
-  themeBtn.textContent = toggleTheme() === "dark" ? "🌙" : "☀️";
+  themeBtn.textContent = toggleTheme() === "dark" ? "☾" : "☀";
 });
 helpBtn.addEventListener("click", showHelpModal);
 
@@ -102,7 +106,7 @@ subscribe((state) => {
 
   connectBtn.textContent = state.account
     ? `${state.account.slice(0, 6)}…${state.account.slice(-4)}`
-    : "Connect";
+    : "Connect wallet";
   connectBtn.classList.toggle("connected", Boolean(state.account));
 
   if (state.error) {
@@ -138,10 +142,10 @@ events.on("revealed", ({ word }) => {
 });
 events.on("new-round", () => {
   sfx.seal();
-  const badge = document.getElementById("sealed-badge")!;
-  badge.classList.add("sealing");
-  window.setTimeout(() => badge.classList.remove("sealing"), 800);
-  showToast("🔒 New word sealed into the TEE — good luck!", false);
+  const ring = document.getElementById("seal-ring")!;
+  ring.classList.add("sealing");
+  window.setTimeout(() => ring.classList.remove("sealing"), 800);
+  showToast("New word sealed into the TEE — good luck!", false);
 });
 
 // ---------------------------------------------------------------------------

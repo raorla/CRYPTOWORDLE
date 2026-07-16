@@ -4,13 +4,16 @@ import { events } from "./events.ts";
 
 /**
  * Idempotent DOM rendering: the grid and keyboard are built once and then
- * mutated in place, so CSS animations (flips, pops) survive re-renders.
+ * mutated in place, so CSS animations (stamps, pops) survive re-renders.
  */
 
 const SYMBOLS: Record<Color, string> = { 0: "×", 1: "≈", 2: "✓" };
 const COLOR_NAMES: Record<Color, string> = { 0: "absent", 1: "present", 2: "correct" };
 
 const KEY_ROWS = ["qwertyuiop", "asdfghjkl", "⏎zxcvbnm⌫"];
+
+/** The sealed-vault lock, restored when a fresh round re-seals the word. */
+const LOCK_SVG = `<svg class="seal-lock" viewBox="0 0 24 24" width="34" height="34" aria-hidden="true"><path fill="currentColor" d="M12 2a5 5 0 0 0-5 5v3H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2h-1V7a5 5 0 0 0-5-5Zm-3 5a3 3 0 1 1 6 0v3H9V7Zm3 7a1.75 1.75 0 0 1 .9 3.25V19a.9.9 0 0 1-1.8 0v-1.75A1.75 1.75 0 0 1 12 14Z"></path></svg>`;
 
 // ---------------------------------------------------------------------------
 // Grid
@@ -34,15 +37,16 @@ export function buildGrid(root: HTMLElement): void {
 
   events.on("tile-color", ({ guessIndex, tile, color }) => {
     // The visual row for a guess is its position within MY rows — resolved at
-    // render time; here we just replay the flip on whichever tile shows it.
+    // render time; here we stamp whichever tile shows it.
     const el = document.querySelector<HTMLElement>(
       `[data-guess-index="${guessIndex}"][data-col="${tile}"]`,
     );
     if (el) {
-      el.classList.remove("pending");
-      el.classList.add("flip");
-      // color class applied mid-flip for the reveal effect
-      window.setTimeout(() => applyTileColor(el, color), 270);
+      applyTileColor(el, color);
+      // (re)trigger the stamp-in animation
+      el.classList.remove("stamp");
+      void el.offsetWidth;
+      el.classList.add("stamp");
     }
   });
 
@@ -53,19 +57,10 @@ export function buildGrid(root: HTMLElement): void {
     row?.classList.add("shake");
     window.setTimeout(() => row?.classList.remove("shake"), 500);
   });
-
-  events.on("win", ({ guessIndex }) => {
-    const tiles = document.querySelectorAll<HTMLElement>(
-      `[data-guess-index="${guessIndex}"]`,
-    );
-    tiles.forEach((t, i) =>
-      window.setTimeout(() => t.classList.add("win-bounce"), i * 90),
-    );
-  });
 }
 
 function applyTileColor(el: HTMLElement, color: Color): void {
-  el.classList.remove("c0", "c1", "c2", "pending");
+  el.classList.remove("c0", "c1", "c2", "pending", "typing");
   el.classList.add(`c${color}`);
   el.dataset.sym = SYMBOLS[color];
   const letter = el.textContent ?? "";
@@ -86,11 +81,14 @@ export function renderGrid(state: AppState): void {
         el.dataset.guessIndex = String(guessRow.guessIndex);
         el.dataset.col = String(c);
         const color = guessRow.colors[c];
-        if (color !== null && !el.classList.contains(`c${color}`)) {
-          // Refresh/late render (no flip event in flight): set color directly.
-          if (!el.classList.contains("flip")) applyTileColor(el, color);
-        } else if (color === null) {
+        if (color !== null) {
+          // Late/refresh render (no stamp event in flight): set color directly.
+          if (!el.classList.contains(`c${color}`)) applyTileColor(el, color);
+          el.classList.toggle("winrow", guessRow.win === true && color === 2);
+        } else {
+          el.classList.remove("c0", "c1", "c2", "winrow", "stamp", "typing");
           el.classList.add("pending");
+          delete el.dataset.sym;
           el.setAttribute("aria-label", `${guessRow.letters[c]}: decrypting`);
         }
       } else if (isTypingRow) {
@@ -134,7 +132,7 @@ export function buildKeyboard(
       const btn = document.createElement("button");
       const isEnter = k === "⏎";
       const isBack = k === "⌫";
-      btn.className = "key" + (isEnter || isBack ? " wide" : "");
+      btn.className = "key" + (isEnter ? " key-enter" : isBack ? " key-back" : "");
       btn.textContent = isEnter ? "enter" : isBack ? "⌫" : k;
       btn.dataset.key = isEnter ? "Enter" : isBack ? "Backspace" : k;
       btn.setAttribute(
@@ -159,33 +157,37 @@ export function renderKeyboard(state: AppState): void {
 }
 
 // ---------------------------------------------------------------------------
-// Banner / status / toast
+// Side panels (pot / ledger / seal) + status
 // ---------------------------------------------------------------------------
 
 export function renderBanner(state: AppState): void {
-  const banner = document.getElementById("round-banner")!;
-  if (!state.round) {
-    banner.hidden = true;
-    return;
-  }
-  banner.hidden = false;
+  const roundNo = document.getElementById("round-number")!;
+  roundNo.textContent = state.round ? `№ ${state.round.id}` : "№ —";
 
   const pot = document.getElementById("pot-value")!;
-  pot.textContent = `${trimEth(state.round.pot)} ETH`;
-
   const guesses = document.getElementById("guesses-value")!;
-  guesses.textContent = String(state.round.guessCount);
+  const yours = document.getElementById("yours-value")!;
+  pot.textContent = state.round ? trimEth(state.round.pot) : "—";
+  guesses.textContent = state.round ? String(state.round.guessCount) : "0";
+  yours.innerHTML = `${state.myRows.length} <span class="of">of ${MAX_GUESSES}</span>`;
 
-  const badge = document.getElementById("sealed-badge")!;
-  const sealedText = document.getElementById("sealed-text")!;
-  if (state.round.revealedWord) {
-    badge.classList.add("unsealed");
-    badge.querySelector(".lock-pulse")!.textContent = "🔓";
-    sealedText.textContent = `it was “${state.round.revealedWord.toUpperCase()}”`;
+  const ring = document.getElementById("seal-ring")!;
+  const inner = document.getElementById("seal-inner")!;
+  const caption = document.getElementById("seal-caption")!;
+  if (state.round?.revealedWord) {
+    ring.classList.add("unsealed");
+    caption.classList.add("unsealed");
+    caption.textContent = `Unsealed — it was “${state.round.revealedWord.toUpperCase()}”`;
+    if (!inner.querySelector(".seal-check")) {
+      inner.innerHTML = `<span class="seal-check">✓</span>`;
+    }
   } else {
-    badge.classList.remove("unsealed");
-    badge.querySelector(".lock-pulse")!.textContent = "🔒";
-    sealedText.textContent = "word sealed in a TEE";
+    ring.classList.remove("unsealed");
+    caption.classList.remove("unsealed");
+    caption.textContent = "Word sealed in a TEE";
+    if (!inner.querySelector(".seal-lock")) {
+      inner.innerHTML = LOCK_SVG;
+    }
   }
 }
 
@@ -193,7 +195,7 @@ export function renderCountdown(state: AppState): void {
   const el = document.getElementById("countdown-value")!;
   if (!state.round) return;
   if (state.round.status !== 0) {
-    el.textContent = state.round.status === 1 ? "solved" : "expired";
+    el.textContent = state.round.status === 1 ? "settled" : "expired";
     return;
   }
   const seconds = Math.max(0, state.round.deadline - Math.floor(Date.now() / 1000));
@@ -205,21 +207,26 @@ export function renderCountdown(state: AppState): void {
 }
 
 const BUSY_PHASES = new Set(["sealing", "computing", "decrypting", "claiming"]);
+const WON_PHASES = new Set(["won", "claiming", "paid"]);
+const SETTLED_PHASES = new Set(["solved-by-other", "expired"]);
 
 export function renderStatus(state: AppState): void {
-  const pill = document.getElementById("status-pill")!;
-  if (state.statusNote) {
-    pill.hidden = false;
-    pill.innerHTML = "";
-    if (BUSY_PHASES.has(state.phase)) {
-      const spinner = document.createElement("span");
-      spinner.className = "spinner";
-      pill.appendChild(spinner);
-    }
-    pill.appendChild(document.createTextNode(state.statusNote));
-  } else {
-    pill.hidden = true;
+  const line = document.getElementById("status-line")!;
+  if (!state.statusNote) {
+    line.hidden = true;
+    return;
   }
+  line.hidden = false;
+  line.className =
+    "status-line" +
+    (WON_PHASES.has(state.phase) ? " is-won" : SETTLED_PHASES.has(state.phase) ? " is-settled" : "");
+  line.innerHTML = "";
+  if (BUSY_PHASES.has(state.phase)) {
+    const spinner = document.createElement("span");
+    spinner.className = "spinner";
+    line.appendChild(spinner);
+  }
+  line.appendChild(document.createTextNode(state.statusNote));
 }
 
 let toastTimer: number | null = null;

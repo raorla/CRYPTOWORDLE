@@ -2,7 +2,7 @@ const STORAGE_KEY = "cw-theme";
 
 export function initTheme(): void {
   const saved = localStorage.getItem(STORAGE_KEY);
-  const theme = saved ?? "dark";
+  const theme = saved ?? "light";
   document.body.dataset.theme = theme;
 }
 
@@ -14,5 +14,5 @@ export function toggleTheme(): string {
 }
 
 export function currentTheme(): string {
-  return document.body.dataset.theme ?? "dark";
+  return document.body.dataset.theme ?? "light";
 }

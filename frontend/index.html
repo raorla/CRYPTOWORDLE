@@ -8,59 +8,151 @@
       name="description"
       content="An on-chain Wordle where the secret word is encrypted inside a TEE via iExec Nox. Only the colors ever come out. First to guess it wins the ETH pot."
     />
-    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🔒%3C/text%3E%3C/svg%3E" />
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%238a6d1f' d='M12 2a5 5 0 0 0-5 5v3H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2h-1V7a5 5 0 0 0-5-5Zm-3 5a3 3 0 1 1 6 0v3H9V7Zm3 7a1.75 1.75 0 0 1 .9 3.25V19a.9.9 0 0 1-1.8 0v-1.75A1.75 1.75 0 0 1 12 14Z'/%3E%3C/svg%3E"
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
   </head>
   <body>
+    <div class="guilloche guilloche-tl" aria-hidden="true"></div>
+    <div class="guilloche guilloche-br" aria-hidden="true"></div>
+
     <div id="app" aria-live="polite">
-      <header class="topbar">
-        <div class="brand" aria-label="CryptoWordle on iExec Nox">
-          <svg class="brand-lock" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
-            <path
-              fill="currentColor"
-              d="M12 2a5 5 0 0 0-5 5v3H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2h-1V7a5 5 0 0 0-5-5Zm-3 5a3 3 0 1 1 6 0v3H9V7Zm3 7a1.75 1.75 0 0 1 .9 3.25V19a.9.9 0 0 1-1.8 0v-1.75A1.75 1.75 0 0 1 12 14Z"
-            />
-          </svg>
-          <span class="brand-name">CRYPTO<span class="brand-accent">WORDLE</span></span>
-          <span class="brand-sub">on iExec&nbsp;Nox</span>
+      <header class="site-header rise">
+        <div class="util-row">
+          <div class="util-left">
+            Eth Sepolia · Round <span id="round-number" class="round-no">№ —</span>
+          </div>
+          <div class="util-actions">
+            <button id="btn-help" class="icon-btn" aria-label="How to play" title="How to play">?</button>
+            <button id="btn-sound" class="icon-btn" aria-label="Toggle sound" title="Sound"></button>
+            <button id="btn-theme" class="icon-btn" aria-label="Toggle theme" title="Theme"></button>
+            <button id="btn-connect" class="connect-btn">Connect wallet</button>
+          </div>
         </div>
-        <div class="topbar-actions">
-          <button id="btn-help" class="icon-btn" aria-label="How to play" title="How to play">?</button>
-          <button id="btn-sound" class="icon-btn" aria-label="Toggle sound" title="Sound"></button>
-          <button id="btn-theme" class="icon-btn" aria-label="Toggle theme" title="Theme"></button>
-          <button id="btn-connect" class="connect-btn">Connect</button>
+        <div class="masthead">
+          <div class="kicker">✦&nbsp;&nbsp;iExec Nox · Confidential Compute&nbsp;&nbsp;✦</div>
+          <h1 class="wordmark">CRYPTO<span class="wordmark-accent">WORDLE</span></h1>
+          <div class="tagline">The Wordle nobody can cheat — not even us</div>
         </div>
+        <div class="header-rule"></div>
       </header>
 
-      <section id="round-banner" class="round-banner" hidden>
-        <div class="banner-item pot" title="Winner takes the pot">
-          <span class="banner-label">Pot</span>
-          <span id="pot-value" class="banner-value">—</span>
-        </div>
-        <div class="banner-item sealed-badge" id="sealed-badge">
-          <span class="lock-pulse" aria-hidden="true">🔒</span>
-          <span id="sealed-text">word sealed in a TEE</span>
-        </div>
-        <div class="banner-item countdown" title="Time left in this round">
-          <span class="banner-label">Ends in</span>
-          <span id="countdown-value" class="banner-value">—</span>
-        </div>
-        <div class="banner-item guesses" title="Guesses by all players">
-          <span class="banner-label">Guesses</span>
-          <span id="guesses-value" class="banner-value">0</span>
-        </div>
-      </section>
+      <main class="game-layout">
+        <aside class="aside aside-left rise-1">
+          <section class="panel framed pot-panel">
+            <div class="label-rule">
+              <span class="rule"></span>
+              <span class="panel-label">The pot</span>
+              <span class="rule"></span>
+            </div>
+            <div class="pot-figure">
+              <div id="pot-value" class="pot-value">—</div>
+              <div class="pot-unit">Ether</div>
+              <p class="pot-caption">
+                Winner takes all — paid out trustlessly against an on-chain KMS proof.
+              </p>
+            </div>
+            <div class="panel-divider"></div>
+            <div class="data-row">
+              <span class="data-label">Round ends</span>
+              <span id="countdown-value" class="data-value">—</span>
+            </div>
+            <div class="data-row">
+              <span class="data-label">Guesses</span>
+              <span id="guesses-value" class="data-value">0</span>
+            </div>
+            <div class="data-row">
+              <span class="data-label">Yours</span>
+              <span id="yours-value" class="data-value">0 <span class="of">of 6</span></span>
+            </div>
+          </section>
 
-      <main class="game">
-        <div id="status-pill" class="status-pill" hidden></div>
-        <div id="grid" class="grid" role="grid" aria-label="Wordle board"></div>
-        <div id="toast" class="toast" hidden role="alert"></div>
-        <div id="keyboard" class="keyboard" aria-label="On-screen keyboard"></div>
+          <section class="panel ledger-panel">
+            <div class="panel-label">Ledger</div>
+            <div class="ledger-rows">
+              <div class="ledger-row">
+                <span>Contract</span>
+                <a id="contract-link" href="#" target="_blank" rel="noopener">— ↗</a>
+              </div>
+              <div class="ledger-row">
+                <span>Enclave</span><span class="ledger-val">Intel TDX</span>
+              </div>
+              <div class="ledger-row">
+                <span>Ops per guess</span><span class="ledger-val">≈ 95 on ciphertext</span>
+              </div>
+            </div>
+          </section>
+        </aside>
+
+        <section class="board-column rise-2">
+          <div id="status-line" class="status-line" hidden></div>
+          <div id="grid" class="board-plate" role="grid" aria-label="Wordle board"></div>
+          <div id="toast" class="toast" hidden role="alert"></div>
+          <div id="keyboard" class="keyboard rise-4" aria-label="On-screen keyboard"></div>
+        </section>
+
+        <aside class="aside aside-right rise-3">
+          <section class="panel framed seal-panel">
+            <div id="seal-ring" class="seal-ring">
+              <div id="seal-inner" class="seal-inner">
+                <svg class="seal-lock" viewBox="0 0 24 24" width="34" height="34" aria-hidden="true">
+                  <path
+                    fill="currentColor"
+                    d="M12 2a5 5 0 0 0-5 5v3H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2h-1V7a5 5 0 0 0-5-5Zm-3 5a3 3 0 1 1 6 0v3H9V7Zm3 7a1.75 1.75 0 0 1 .9 3.25V19a.9.9 0 0 1-1.8 0v-1.75A1.75 1.75 0 0 1 12 14Z"
+                  />
+                </svg>
+              </div>
+            </div>
+            <div id="seal-caption" class="seal-caption">Word sealed in a TEE</div>
+            <p class="seal-copy">
+              Encrypted on Sepolia inside iExec Nox. While the round is live,
+              <strong>nobody can read it</strong> — not the server, not the devs, not us.
+              Hints are computed on ciphertext; only the colours ever decrypt.
+            </p>
+          </section>
+
+          <section class="panel howto-panel">
+            <div class="panel-label">How the vault works</div>
+            <div class="howto-rows">
+              <div class="howto-row">
+                <span class="roman">I.</span>
+                <p><strong>Sealed.</strong> A CSPRNG picks the word; only encrypted handles ever touch the chain.</p>
+              </div>
+              <div class="howto-row">
+                <span class="roman">II.</span>
+                <p><strong>Hinted.</strong> Each guess is scored inside an Intel TDX enclave — ≈95 encrypted ops per row.</p>
+              </div>
+              <div class="howto-row">
+                <span class="roman">III.</span>
+                <p><strong>Audited.</strong> When the round ends the word is unsealed — replay every hint yourself.</p>
+              </div>
+            </div>
+          </section>
+
+          <div class="legend">✓ correct&nbsp;&nbsp;·&nbsp;&nbsp;≈ present&nbsp;&nbsp;·&nbsp;&nbsp;× absent</div>
+        </aside>
       </main>
 
-      <footer class="footer">
-        <a id="contract-link" href="#" target="_blank" rel="noopener">contract ↗</a>
-        <span class="footer-sep">·</span>
-        <span>the word is <strong>mathematically un-leakable</strong> while the round is live</span>
+      <footer class="site-footer rise-5">
+        <div class="microprint" aria-hidden="true">
+          the word is mathematically un-leakable while the round is live ·
+          the word is mathematically un-leakable while the round is live ·
+          the word is mathematically un-leakable while the round is live ·
+          the word is mathematically un-leakable while the round is live ·
+          the word is mathematically un-leakable while the round is live ·
+          the word is mathematically un-leakable while the round is live ·
+        </div>
+        <div class="footer-meta">
+          <a id="footer-contract-link" href="#" target="_blank" rel="noopener">contract ↗</a>
+          <span class="dot">·</span>MIT<span class="dot">·</span>word list from Knuth's Stanford GraphBase
+        </div>
       </footer>
     </div>
 

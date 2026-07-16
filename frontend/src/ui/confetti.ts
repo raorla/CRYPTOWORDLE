@@ -12,7 +12,8 @@ interface Particle {
   shape: "rect" | "circle";
 }
 
-const COLORS = ["#8b5cf6", "#10c46e", "#e7a917", "#22d3ee", "#ff5470", "#ffffff"];
+// Gold / green / ivory — the certificate palette.
+const COLORS = ["#b8912f", "#8a6d1f", "#1e6b47", "#27754f", "#a5761d", "#f5f0de"];
 
 let particles: Particle[] = [];
 let raf: number | null = null;

@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  html, body { margin: 0; padding: 0; height: 100%; }
+  body {
+    --paper: #f1ecdd;
+    --paper-2: #f6f2e6;
+    --panel: #f6f2e6;
+    --ink: #1d3229;
+    --muted: #67746a;
+    --line: #cfc5a8;
+    --line-strong: #a89a76;
+    --tile-line: #bdb193;
+    --metal: #b8912f;
+    --metal-deep: #8a6d1f;
+    --metal-soft: rgba(184, 145, 47, 0.16);
+    --ok: #1e6b47;
+    --warm: #a5761d;
+    --dim: #a09a86;
+    --stamp-text: #f5f0de;
+    --danger: #9c3b32;
+    --tile: clamp(50px, 6.6vh, 70px);
+    --key-h: clamp(44px, 5.6vh, 52px);
+    font-family: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+    background:
+      radial-gradient(1100px 500px at 50% -8%, rgba(184, 145, 47, 0.10), transparent 70%),
+      repeating-linear-gradient(0deg, rgba(29, 50, 41, 0.022) 0 1px, transparent 1px 3px),
+      var(--paper);
+    background-attachment: fixed;
+    color: var(--ink);
+    -webkit-font-smoothing: antialiased;
+    overscroll-behavior: none;
+  }
+  body.cwx-dark {
+    --paper: #0d1410;
+    --paper-2: #121a14;
+    --panel: #121a14;
+    --ink: #e9e0c5;
+    --muted: #8d9480;
+    --line: #2c3a2e;
+    --line-strong: #48583f;
+    --tile-line: #33422f;
+    --metal-soft: rgba(184, 145, 47, 0.14);
+    --ok: #27754f;
+    --warm: #a5761d;
+    --dim: #3c463c;
+    --stamp-text: #f0ead2;
+    background:
+      radial-gradient(1100px 500px at 50% -8%, rgba(184, 145, 47, 0.08), transparent 70%),
+      repeating-linear-gradient(0deg, rgba(233, 224, 197, 0.016) 0 1px, transparent 1px 3px),
+      var(--paper);
+    background-attachment: fixed;
+  }
+  a { color: var(--metal-deep); text-decoration: none; }
+  a:hover { color: var(--metal); }
+  button { font-family: inherit; cursor: pointer; }
+  @keyframes riseIn { from { opacity: 0; transform: translateY(10px); } }
+  @keyframes fadeIn { from { opacity: 0; } }
+  @keyframes stampIn { 0% { opacity: 0; transform: scale(1.25) rotate(-1deg); } 55% { opacity: 1; transform: scale(0.97); } 100% { transform: scale(1); } }
+  @keyframes scanline { to { background-position: -230% 0; } }
+  @keyframes sealGlow { 0%, 100% { box-shadow: 0 0 0 0 rgba(184, 145, 47, 0); } 50% { box-shadow: 0 0 26px 2px rgba(184, 145, 47, 0.35); } }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @keyframes certIn { from { opacity: 0; transform: scale(0.94) translateY(14px); } }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
+  }
+</style>
+</helmet>
+<div style="min-height: 100dvh; display: flex; flex-direction: column; position: relative; overflow: hidden;">
+  <div aria-hidden="true" style="position: fixed; top: -260px; left: -260px; width: 620px; height: 620px; border-radius: 50%; background: repeating-radial-gradient(circle at center, var(--line) 0 1px, transparent 1px 11px); opacity: 0.3; pointer-events: none;"></div>
+  <div aria-hidden="true" style="position: fixed; bottom: -300px; right: -300px; width: 720px; height: 720px; border-radius: 50%; background: repeating-radial-gradient(circle at center, var(--line) 0 1px, transparent 1px 13px); opacity: 0.3; pointer-events: none;"></div>
+
+  <header style="position: relative; z-index: 1; animation: riseIn 0.5s ease backwards;">
+    <div style="max-width: 1240px; margin: 0 auto; padding: 16px 28px 0; display: flex; align-items: center; justify-content: space-between; gap: 16px;">
+      <div style="font-size: 10px; letter-spacing: 0.24em; text-transform: uppercase; color: var(--muted); white-space: nowrap;">Eth Sepolia · Round <span style="color: var(--metal-deep); font-weight: 600;">№ 42</span></div>
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <button onClick="{{ openHelp }}" aria-label="How to play" title="How to play" style="width: 34px; height: 34px; border-radius: 50%; border: 1px solid var(--line-strong); background: transparent; color: var(--ink); font-size: 13px; font-weight: 600; display: grid; place-items: center; transition: border-color 0.15s ease, color 0.15s ease;" style-hover="border-color: var(--metal); color: var(--metal-deep);">?</button>
+        <button onClick="{{ toggleSound }}" aria-label="Toggle sound" title="Sound" style="width: 34px; height: 34px; border-radius: 50%; border: 1px solid var(--line-strong); background: transparent; color: var(--ink); font-size: 13px; display: grid; place-items: center; transition: border-color 0.15s ease, color 0.15s ease;" style-hover="border-color: var(--metal); color: var(--metal-deep);">{{ soundIcon }}</button>
+        <button onClick="{{ toggleTheme }}" aria-label="Toggle theme" title="Theme" style="width: 34px; height: 34px; border-radius: 50%; border: 1px solid var(--line-strong); background: transparent; color: var(--ink); font-size: 13px; display: grid; place-items: center; transition: border-color 0.15s ease, color 0.15s ease;" style-hover="border-color: var(--metal); color: var(--metal-deep);">{{ themeIcon }}</button>
+        <button style="height: 34px; padding: 0 18px; border: 1px solid var(--metal-deep); background: var(--metal-soft); color: var(--ink); font-size: 11px; font-weight: 600; letter-spacing: 0.18em; text-transform: uppercase; transition: background 0.15s ease, box-shadow 0.15s ease;" style-hover="background: var(--metal); color: var(--stamp-text); box-shadow: 0 2px 14px rgba(184,145,47,0.35);">Connect wallet</button>
+      </div>
+    </div>
+    <div style="text-align: center; padding: 10px 20px 20px;">
+      <div style="font-size: 10px; letter-spacing: 0.34em; text-transform: uppercase; color: var(--metal-deep); margin-bottom: 10px;">✦ &nbsp;iExec Nox · Confidential Compute&nbsp; ✦</div>
+      <h1 style="margin: 0; font-family: Cinzel, serif; font-weight: 900; font-size: clamp(34px, 4.6vw, 58px); letter-spacing: 0.14em; line-height: 1.05;">CRYPTO<span style="color: var(--metal-deep);">WORDLE</span></h1>
+      <div style="margin-top: 10px; font-size: 11px; letter-spacing: 0.26em; text-transform: uppercase; color: var(--muted);">The Wordle nobody can cheat — not even us</div>
+    </div>
+    <div style="border-bottom: 3px double var(--line-strong); max-width: 1240px; margin: 0 auto;"></div>
+  </header>
+
+  <main style="position: relative; z-index: 1; flex: 1; width: 100%; max-width: 1240px; margin: 0 auto; padding: 26px 28px 10px; display: flex; flex-wrap: wrap; justify-content: center; align-items: flex-start; gap: 26px;">
+
+    <aside style="flex: 1 1 250px; max-width: 300px; min-width: 240px; order: 1; display: flex; flex-direction: column; gap: 18px; animation: riseIn 0.5s ease 0.08s backwards;">
+      <section style="background: var(--panel); border: 1px solid var(--line); box-shadow: inset 0 0 0 4px var(--paper), inset 0 0 0 5px var(--line); padding: 22px 20px 20px;">
+        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 14px;">
+          <span style="flex: 1; height: 1px; background: var(--line);"></span>
+          <span style="font-size: 10px; letter-spacing: 0.3em; text-transform: uppercase; color: var(--muted);">The pot</span>
+          <span style="flex: 1; height: 1px; background: var(--line);"></span>
+        </div>
+        <div style="text-align: center;">
+          <div style="font-family: Cinzel, serif; font-weight: 900; font-size: 52px; line-height: 1; color: var(--metal-deep);">0.05</div>
+          <div style="margin-top: 6px; font-size: 12px; letter-spacing: 0.3em; text-transform: uppercase; font-weight: 600;">Ether</div>
+          <p style="margin: 12px 0 0; font-size: 10.5px; line-height: 1.65; color: var(--muted);">Winner takes all — paid out trustlessly against an on-chain KMS proof.</p>
+        </div>
+        <div style="height: 1px; background: var(--line); margin: 16px 0;"></div>
+        <div style="display: flex; justify-content: space-between; align-items: baseline; gap: 10px;">
+          <span style="font-size: 10px; letter-spacing: 0.24em; text-transform: uppercase; color: var(--muted);">Round ends</span>
+          <span style="font-size: 17px; font-weight: 700; font-variant-numeric: tabular-nums;">{{ countdown }}</span>
+        </div>
+        <div style="display: flex; justify-content: space-between; align-items: baseline; gap: 10px; margin-top: 10px;">
+          <span style="font-size: 10px; letter-spacing: 0.24em; text-transform: uppercase; color: var(--muted);">Guesses</span>
+          <span style="font-size: 17px; font-weight: 700; font-variant-numeric: tabular-nums;">9</span>
+        </div>
+        <div style="display: flex; justify-content: space-between; align-items: baseline; gap: 10px; margin-top: 10px;">
+          <span style="font-size: 10px; letter-spacing: 0.24em; text-transform: uppercase; color: var(--muted);">Yours</span>
+          <span style="font-size: 17px; font-weight: 700; font-variant-numeric: tabular-nums;">3 <span style="color: var(--muted); font-size: 12px; font-weight: 400;">of 6</span></span>
+        </div>
+      </section>
+      <section style="background: var(--panel); border: 1px solid var(--line); padding: 16px 18px;">
+        <div style="font-size: 10px; letter-spacing: 0.3em; text-transform: uppercase; color: var(--muted); margin-bottom: 10px;">Ledger</div>
+        <div style="display: flex; flex-direction: column; gap: 8px; font-size: 10.5px; color: var(--muted);">
+          <div style="display: flex; justify-content: space-between; gap: 8px;"><span>Contract</span><a href="https://sepolia.etherscan.io/address/0x5246befd9bc31b44d90e274c758cce3d24a0490f" target="_blank" rel="noopener" style="font-weight: 600;">0x5246…490f ↗</a></div>
+          <div style="display: flex; justify-content: space-between; gap: 8px;"><span>Enclave</span><span style="color: var(--ink);">Intel TDX</span></div>
+          <div style="display: flex; justify-content: space-between; gap: 8px;"><span>Ops per guess</span><span style="color: var(--ink);">≈ 95 on ciphertext</span></div>
+        </div>
+      </section>
+    </aside>
+
+    <section style="flex: 0 1 auto; order: 2; display: flex; flex-direction: column; align-items: center; gap: 18px; animation: riseIn 0.5s ease 0.14s backwards;">
+      <div style="display: flex; align-items: center; gap: 10px; min-height: 26px; font-size: 10.5px; letter-spacing: 0.22em; text-transform: uppercase; color: {{ statusColor }};">
+        <sc-if value="{{ showSpinner }}" hint-placeholder-val="{{ true }}">
+          <span style="width: 11px; height: 11px; flex: none; border-radius: 50%; border: 2px solid var(--metal-soft); border-top-color: var(--metal); animation: spin 0.9s linear infinite;"></span>
+        </sc-if>
+        <span>{{ statusText }}</span>
+      </div>
+
+      <div role="grid" aria-label="Wordle board" style="display: grid; grid-template-rows: repeat(6, var(--tile)); gap: 8px; padding: 18px; background: var(--panel); border: 1px solid var(--line); box-shadow: inset 0 0 0 4px var(--paper), inset 0 0 0 5px var(--line), 0 18px 40px -22px rgba(29, 50, 41, 0.45);">
+        <div role="row" style="display: grid; grid-template-columns: repeat(5, var(--tile)); gap: 8px;">
+          <div data-sym="×" style="width: var(--tile); height: var(--tile); background: var(--dim); color: var(--stamp-text); display: grid; place-items: center; font-family: Cinzel, serif; font-weight: 700; font-size: calc(var(--tile) * 0.44); position: relative; transform: rotate(-0.5deg); animation: stampIn 0.4s ease backwards 0.2s;" style-after="content: attr(data-sym); position: absolute; right: 5px; bottom: 3px; font-family: 'IBM Plex Mono', monospace; font-size: calc(var(--tile) * 0.17); font-weight: 700; opacity: 0.8;">C</div>
+          <div data-sym="≈" style="width: var(--tile); height: var(--tile); background: var(--warm); color: var(--stamp-text); display: grid; place-items: center; font-family: Cinzel, serif; font-weight: 700; font-size: calc(var(--tile) * 0.44); position: relative; transform: rotate(0.4deg); animation: stampIn 0.4s ease backwards 0.26s;" style-after="content: attr(data-sym); position: absolute; right: 5px; bottom: 3px; font-family: 'IBM Plex Mono', monospace; font-size: calc(var(--tile) * 0.17); font-weight: 700; opacity: 0.8;">R</div>
+          <div data-sym="≈" style="width: var(--tile); height: var(--tile); background: var(--warm); color: var(--stamp-text); display: grid; place-items: center; font-family: Cinzel, serif; font-weight: 700; font-size: calc(var(--tile) * 0.44); position: relative; transform: rotate(-0.3deg); animation: stampIn 0.4s ease backwards 0.32s;" style-after="content: attr(data-sym); position: absolute; right: 5px; bottom: 3px; font-family: 'IBM Plex Mono', monospace; font-size: calc(var(--tile) * 0.17); font-weight: 700; opacity: 0.8;">A</div>
+          <div data-sym="×" style="width: var(--tile); height: var(--tile); background: var(--dim); color: var(--stamp-text); display: grid; place-items: center; font-family: Cinzel, serif; font-weight: 700; font-size: calc(var(--tile) * 0.44); position: relative; transform: rotate(0.5deg); animation: stampIn 0.4s ease backwards 0.38s;" style-after="content: attr(data-sym); position: absolute; right: 5px; bottom: 3px; font-family: 'IBM Plex Mono', monospace; font-size: calc(var(--tile) * 0.17); font-weight: 700; opacity: 0.8;">N</div>
+          <div data-sym="×" style="width: var(--tile); height: var(--tile); background: var(--dim); color: var(--stamp-text); display: grid; place-items: center; font-family: Cinzel, serif; font-weight: 700; font-size: calc(var(--tile) * 0.44); position: relative; transform: rotate(-0.4deg); animation: stampIn 0.4s ease backwards 0.44s;" style-after="content: attr(data-sym); position: absolute; right: 5px; bottom: 3px; font-family: 'IBM Plex Mono', monospace; font-size: calc(var(--tile) * 0.17); font-weight: 700; opacity: 0.8;">E</div>
+        </div>
+        <div role="row" style="display: grid; grid-template-columns: repeat(5, var(--tile)); gap: 8px;">
+          <div data-sym="≈" style="width: var(--tile); height: var(--tile); background: var(--warm); color: var(--stamp-text); display: grid; place-items: center; font-family: Cinzel, serif; font-weight: 700; font-size: calc(var(--tile) * 0.44); position: relative; transform: rotate(0.4deg); animation: stampIn 0.4s ease backwards 0.5s;" style-after="content: attr(data-sym); position: absolute; right: 5px; bottom: 3px; font-family: 'IBM Plex Mono', monospace; font-size: calc(var(--tile) * 0.17); font-weight: 700; opacity: 0.8;">P</div>
+          <div data-sym="≈" style="width: var(--tile); height: var(--tile); background: var(--warm); color: var(--stamp-text); display: grid; place-items: center; font-family: Cinzel, serif; font-weight: 700; font-size: calc(var(--tile) * 0.44); position: relative; transform: rotate(-0.5deg); animation: stampIn 0.4s ease backwards 0.56s;" style-after="content: attr(data-sym); position: absolute; right: 5px; bottom: 3px; font-family: 'IBM Plex Mono', monospace; font-size: calc(var(--tile) * 0.17); font-weight: 700; opacity: 0.8;">O</div>
+          <div data-sym="≈" style="width: var(--tile); height: var(--tile); background: var(--warm); color: var(--stamp-text); display: grid; place-items: center; font-family: Cinzel, serif; font-weight: 700; font-size: calc(var(--tile) * 0.44); position: relative; transform: rotate(0.3deg); animation: stampIn 0.4s ease backwards 0.62s;" style-after="content: attr(data-sym); position: absolute; right: 5px; bottom: 3px; font-family: 'IBM Plex Mono', monospace; font-size: calc(var(--tile) * 0.17); font-weight: 700; opacity: 0.8;">R</div>
+          <div data-sym="×" style="width: var(--tile); height: var(--tile); background: var(--dim); color: var(--stamp-text); display: grid; place-items: center; font-family: Cinzel, serif; font-weight: 700; font-size: calc(var(--tile) * 0.44); position: relative; transform: rotate(-0.3deg); animation: stampIn 0.4s ease backwards 0.68s;" style-after="content: attr(data-sym); position: absolute; right: 5px; bottom: 3px; font-family: 'IBM Plex Mono', monospace; font-size: calc(var(--tile) * 0.17); font-weight: 700; opacity: 0.8;">C</div>
+          <div data-sym="×" style="width: var(--tile); height: var(--tile); background: var(--dim); color: var(--stamp-text); display: grid; place-items: center; font-family: Cinzel, serif; font-weight: 700; font-size: calc(var(--tile) * 0.44); position: relative; transform: rotate(0.5deg); animation: stampIn 0.4s ease backwards 0.74s;" style-after="content: attr(data-sym); position: absolute; right: 5px; bottom: 3px; font-family: 'IBM Plex Mono', monospace; font-size: calc(var(--tile) * 0.17); font-weight: 700; opacity: 0.8;">H</div>
+        </div>
+        <sc-if value="{{ showPendingRow }}" hint-placeholder-val="{{ true }}">
+          <div role="row" style="display: grid; grid-template-columns: repeat(5, var(--tile)); gap: 8px;">
+            <div aria-label="V: decrypting" style="width: var(--tile); height: var(--tile); border: 1px solid var(--metal); background: linear-gradient(110deg, var(--panel) 32%, var(--metal-soft) 46%, var(--panel) 60%); background-size: 230% 100%; animation: scanline 1.5s linear infinite; display: grid; place-items: center; font-family: Cinzel, serif; font-weight: 700; font-size: calc(var(--tile) * 0.44); color: var(--muted);">V</div>
+            <div aria-label="A: decrypting" style="width: var(--tile); height: var(--tile); border: 1px solid var(--metal); background: linear-gradient(110deg, var(--panel) 32%, var(--metal-soft) 46%, var(--panel) 60%); background-size: 230% 100%; animation: scanline 1.5s linear infinite; display: grid; place-items: center; font-family: Cinzel, serif; font-weight: 700; font-size: calc(var(--tile) * 0.44); color: var(--muted);">A</div>
+            <div aria-label="P: decrypting" style="width: var(--tile); height: var(--tile); border: 1px solid var(--metal); background: linear-gradient(110deg, var(--panel) 32%, var(--metal-soft) 46%, var(--panel) 60%); background-size: 230% 100%; animation: scanline 1.5s linear infinite; display: grid; place-items: center; font-family: Cinzel, serif; font-weight: 700; font-size: calc(var(--tile) * 0.44); color: var(--muted);">P</div>
+            <div aria-label="O: decrypting" style="width: var(--tile); height: var(--tile); border: 1px solid var(--metal); background: linear-gradient(110deg, var(--panel) 32%, var(--metal-soft) 46%, var(--panel) 60%); background-size: 230% 100%; animation: scanline 1.5s linear infinite; display: grid; place-items: center; font-family: Cinzel, serif; font-weight: 700; font-size: calc(var(--tile) * 0.44); color: var(--muted);">O</div>
+            <div aria-label="R: decrypting" style="width: var(--tile); height: var(--tile); border: 1px solid var(--metal); background: linear-gradient(110deg, var(--panel) 32%, var(--metal-soft) 46%, var(--panel) 60%); background-size: 230% 100%; animation: scanline 1.5s linear infinite; display: grid; place-items: center; font-family: Cinzel, serif; font-weight: 700; font-size: calc(var(--tile) * 0.44); color: var(--muted);">R</div>
+          </div>
+        </sc-if>
+        <sc-if value="{{ showSolvedRow }}" hint-placeholder-val="{{ false }}">
+          <div role="row" style="display: grid; grid-template-columns: repeat(5, var(--tile)); gap: 8px;">
+            <div data-sym="✓" style="width: var(--tile); height: var(--tile); background: var(--ok); color: var(--stamp-text); display: grid; place-items: center; font-family: Cinzel, serif; font-weight: 700; font-size: calc(var(--tile) * 0.44); position: relative; transform: rotate(-0.4deg); animation: stampIn 0.4s ease backwards 0.1s; box-shadow: 0 0 18px rgba(30, 107, 71, 0.35);" style-after="content: attr(data-sym); position: absolute; right: 5px; bottom: 3px; font-family: 'IBM Plex Mono', monospace; font-size: calc(var(--tile) * 0.17); font-weight: 700; opacity: 0.8;">V</div>
+            <div data-sym="✓" style="width: var(--tile); height: var(--tile); background: var(--ok); color: var(--stamp-text); display: grid; place-items: center; font-family: Cinzel, serif; font-weight: 700; font-size: calc(var(--tile) * 0.44); position: relative; transform: rotate(0.3deg); animation: stampIn 0.4s ease backwards 0.18s; box-shadow: 0 0 18px rgba(30, 107, 71, 0.35);" style-after="content: attr(data-sym); position: absolute; right: 5px; bottom: 3px; font-family: 'IBM Plex Mono', monospace; font-size: calc(var(--tile) * 0.17); font-weight: 700; opacity: 0.8;">A</div>
+            <div data-sym="✓" style="width: var(--tile); height: var(--tile); background: var(--ok); color: var(--stamp-text); display: grid; place-items: center; font-family: Cinzel, serif; font-weight: 700; font-size: calc(var(--tile) * 0.44); position: relative; transform: rotate(-0.5deg); animation: stampIn 0.4s ease backwards 0.26s; box-shadow: 0 0 18px rgba(30, 107, 71, 0.35);" style-after="content: attr(data-sym); position: absolute; right: 5px; bottom: 3px; font-family: 'IBM Plex Mono', monospace; font-size: calc(var(--tile) * 0.17); font-weight: 700; opacity: 0.8;">P</div>
+            <div data-sym="✓" style="width: var(--tile); height: var(--tile); background: var(--ok); color: var(--stamp-text); display: grid; place-items: center; font-family: Cinzel, serif; font-weight: 700; font-size: calc(var(--tile) * 0.44); position: relative; transform: rotate(0.4deg); animation: stampIn 0.4s ease backwards 0.34s; box-shadow: 0 0 18px rgba(30, 107, 71, 0.35);" style-after="content: attr(data-sym); position: absolute; right: 5px; bottom: 3px; font-family: 'IBM Plex Mono', monospace; font-size: calc(var(--tile) * 0.17); font-weight: 700; opacity: 0.8;">O</div>
+            <div data-sym="✓" style="width: var(--tile); height: var(--tile); background: var(--ok); color: var(--stamp-text); display: grid; place-items: center; font-family: Cinzel, serif; font-weight: 700; font-size: calc(var(--tile) * 0.44); position: relative; transform: rotate(-0.3deg); animation: stampIn 0.4s ease backwards 0.42s; box-shadow: 0 0 18px rgba(30, 107, 71, 0.35);" style-after="content: attr(data-sym); position: absolute; right: 5px; bottom: 3px; font-family: 'IBM Plex Mono', monospace; font-size: calc(var(--tile) * 0.17); font-weight: 700; opacity: 0.8;">R</div>
+          </div>
+        </sc-if>
+        <div role="row" style="display: grid; grid-template-columns: repeat(5, var(--tile)); gap: 8px;">
+          <div style="width: var(--tile); height: var(--tile); border: 1px solid var(--tile-line); box-shadow: inset 0 0 0 3px var(--panel), inset 0 0 0 4px var(--line);"></div>
+          <div style="width: var(--tile); height: var(--tile); border: 1px solid var(--tile-line); box-shadow: inset 0 0 0 3px var(--panel), inset 0 0 0 4px var(--line);"></div>
+          <div style="width: var(--tile); height: var(--tile); border: 1px solid var(--tile-line); box-shadow: inset 0 0 0 3px var(--panel), inset 0 0 0 4px var(--line);"></div>
+          <div style="width: var(--tile); height: var(--tile); border: 1px solid var(--tile-line); box-shadow: inset 0 0 0 3px var(--panel), inset 0 0 0 4px var(--line);"></div>
+          <div style="width: var(--tile); height: var(--tile); border: 1px solid var(--tile-line); box-shadow: inset 0 0 0 3px var(--panel), inset 0 0 0 4px var(--line);"></div>
+        </div>
+        <div role="row" style="display: grid; grid-template-columns: repeat(5, var(--tile)); gap: 8px;">
+          <div style="width: var(--tile); height: var(--tile); border: 1px solid var(--tile-line); box-shadow: inset 0 0 0 3px var(--panel), inset 0 0 0 4px var(--line);"></div>
+          <div style="width: var(--tile); height: var(--tile); border: 1px solid var(--tile-line); box-shadow: inset 0 0 0 3px var(--panel), inset 0 0 0 4px var(--line);"></div>
+          <div style="width: var(--tile); height: var(--tile); border: 1px solid var(--tile-line); box-shadow: inset 0 0 0 3px var(--panel), inset 0 0 0 4px var(--line);"></div>
+          <div style="width: var(--tile); height: var(--tile); border: 1px solid var(--tile-line); box-shadow: inset 0 0 0 3px var(--panel), inset 0 0 0 4px var(--line);"></div>
+          <div style="width: var(--tile); height: var(--tile); border: 1px solid var(--tile-line); box-shadow: inset 0 0 0 3px var(--panel), inset 0 0 0 4px var(--line);"></div>
+        </div>
+        <div role="row" style="display: grid; grid-template-columns: repeat(5, var(--tile)); gap: 8px;">
+          <div style="width: var(--tile); height: var(--tile); border: 1px solid var(--tile-line); box-shadow: inset 0 0 0 3px var(--panel), inset 0 0 0 4px var(--line);"></div>
+          <div style="width: var(--tile); height: var(--tile); border: 1px solid var(--tile-line); box-shadow: inset 0 0 0 3px var(--panel), inset 0 0 0 4px var(--line);"></div>
+          <div style="width: var(--tile); height: var(--tile); border: 1px solid var(--tile-line); box-shadow: inset 0 0 0 3px var(--panel), inset 0 0 0 4px var(--line);"></div>
+          <div style="width: var(--tile); height: var(--tile); border: 1px solid var(--tile-line); box-shadow: inset 0 0 0 3px var(--panel), inset 0 0 0 4px var(--line);"></div>
+          <div style="width: var(--tile); height: var(--tile); border: 1px solid var(--tile-line); box-shadow: inset 0 0 0 3px var(--panel), inset 0 0 0 4px var(--line);"></div>
+        </div>
+      </div>
+
+      <div aria-label="On-screen keyboard" style="display: flex; flex-direction: column; gap: 7px; width: 100%; max-width: 520px; animation: riseIn 0.5s ease 0.22s backwards;">
+        <div style="display: flex; justify-content: center; gap: 6px;">
+          <button style="flex: 1; max-width: 46px; height: var(--key-h); border: 1px solid var(--line-strong); background: var(--paper-2); color: var(--ink); font-size: 12.5px; font-weight: 600; text-transform: uppercase; display: grid; place-items: center; user-select: none; transition: border-color 0.12s ease;" style-hover="border-color: var(--metal);" style-active="transform: scale(0.93);">q</button>
+          <button style="flex: 1; max-width: 46px; height: var(--key-h); border: 1px solid var(--line-strong); background: var(--paper-2); color: var(--ink); font-size: 12.5px; font-weight: 600; text-transform: uppercase; display: grid; place-items: center; user-select: none; transition: border-color 0.12s ease;" style-hover="border-color: var(--metal);" style-active="transform: scale(0.93);">w</button>
+          <button style="flex: 1; max-width: 46px; height: var(--key-h); border: 1px solid transparent; background: var(--dim); color: var(--stamp-text); opacity: 0.55; font-size: 12.5px; font-weight: 600; text-transform: uppercase; display: grid; place-items: center; user-select: none;" style-active="transform: scale(0.93);">e</button>
+          <button style="flex: 1; max-width: 46px; height: var(--key-h); border: 1px solid transparent; background: var(--warm); color: var(--stamp-text); font-size: 12.5px; font-weight: 600; text-transform: uppercase; display: grid; place-items: center; user-select: none;" style-active="transform: scale(0.93);">r</button>
+          <button style="flex: 1; max-width: 46px; height: var(--key-h); border: 1px solid var(--line-strong); background: var(--paper-2); color: var(--ink); font-size: 12.5px; font-weight: 600; text-transform: uppercase; display: grid; place-items: center; user-select: none; transition: border-color 0.12s ease;" style-hover="border-color: var(--metal);" style-active="transform: scale(0.93);">t</button>
+          <button style="flex: 1; max-width: 46px; height: var(--key-h); border: 1px solid var(--line-strong); background: var(--paper-2); color: var(--ink); font-size: 12.5px; font-weight: 600; text-transform: uppercase; display: grid; place-items: center; user-select: none; transition: border-color 0.12s ease;" style-hover="border-color: var(--metal);" style-active="transform: scale(0.93);">y</button>
+          <button style="flex: 1; max-width: 46px; height: var(--key-h); border: 1px solid var(--line-strong); background: var(--paper-2); color: var(--ink); font-size: 12.5px; font-weight: 600; text-transform: uppercase; display: grid; place-items: center; user-select: none; transition: border-color 0.12s ease;" style-hover="border-color: var(--metal);" style-active="transform: scale(0.93);">u</button>
+          <button style="flex: 1; max-width: 46px; height: var(--key-h); border: 1px solid var(--line-strong); background: var(--paper-2); color: var(--ink); font-size: 12.5px; font-weight: 600; text-transform: uppercase; display: grid; place-items: center; user-select: none; transition: border-color 0.12s ease;" style-hover="border-color: var(--metal);" style-active="transform: scale(0.93);">i</button>
+          <button style="flex: 1; max-width: 46px; height: var(--key-h); border: 1px solid transparent; background: var(--warm); color: var(--stamp-text); font-size: 12.5px; font-weight: 600; text-transform: uppercase; display: grid; place-items: center; user-select: none;" style-active="transform: scale(0.93);">o</button>
+          <button style="flex: 1; max-width: 46px; height: var(--key-h); border: 1px solid transparent; background: var(--warm); color: var(--stamp-text); font-size: 12.5px; font-weight: 600; text-transform: uppercase; display: grid; place-items: center; user-select: none;" style-active="transform: scale(0.93);">p</button>
+        </div>
+        <div style="display: flex; justify-content: center; gap: 6px;">
+          <button style="flex: 1; max-width: 46px; height: var(--key-h); border: 1px solid transparent; background: var(--warm); color: var(--stamp-text); font-size: 12.5px; font-weight: 600; text-transform: uppercase; display: grid; place-items: center; user-select: none;" style-active="transform: scale(0.93);">a</button>
+          <button style="flex: 1; max-width: 46px; height: var(--key-h); border: 1px solid var(--line-strong); background: var(--paper-2); color: var(--ink); font-size: 12.5px; font-weight: 600; text-transform: uppercase; display: grid; place-items: center; user-select: none; transition: border-color 0.12s ease;" style-hover="border-color: var(--metal);" style-active="transform: scale(0.93);">s</button>
+          <button style="flex: 1; max-width: 46px; height: var(--key-h); border: 1px solid var(--line-strong); background: var(--paper-2); color: var(--ink); font-size: 12.5px; font-weight: 600; text-transform: uppercase; display: grid; place-items: center; user-select: none; transition: border-color 0.12s ease;" style-hover="border-color: var(--metal);" style-active="transform: scale(0.93);">d</button>
+          <button style="flex: 1; max-width: 46px; height: var(--key-h); border: 1px solid var(--line-strong); background: var(--paper-2); color: var(--ink); font-size: 12.5px; font-weight: 600; text-transform: uppercase; display: grid; place-items: center; user-select: none; transition: border-color 0.12s ease;" style-hover="border-color: var(--metal);" style-active="transform: scale(0.93);">f</button>
+          <button style="flex: 1; max-width: 46px; height: var(--key-h); border: 1px solid var(--line-strong); background: var(--paper-2); color: var(--ink); font-size: 12.5px; font-weight: 600; text-transform: uppercase; display: grid; place-items: center; user-select: none; transition: border-color 0.12s ease;" style-hover="border-color: var(--metal);" style-active="transform: scale(0.93);">g</button>
+          <button style="flex: 1; max-width: 46px; height: var(--key-h); border: 1px solid transparent; background: var(--dim); color: var(--stamp-text); opacity: 0.55; font-size: 12.5px; font-weight: 600; text-transform: uppercase; display: grid; place-items: center; user-select: none;" style-active="transform: scale(0.93);">h</button>
+          <button style="flex: 1; max-width: 46px; height: var(--key-h); border: 1px solid var(--line-strong); background: var(--paper-2); color: var(--ink); font-size: 12.5px; font-weight: 600; text-transform: uppercase; display: grid; place-items: center; user-select: none; transition: border-color 0.12s ease;" style-hover="border-color: var(--metal);" style-active="transform: scale(0.93);">j</button>
+          <button style="flex: 1; max-width: 46px; height: var(--key-h); border: 1px solid var(--line-strong); background: var(--paper-2); color: var(--ink); font-size: 12.5px; font-weight: 600; text-transform: uppercase; display: grid; place-items: center; user-select: none; transition: border-color 0.12s ease;" style-hover="border-color: var(--metal);" style-active="transform: scale(0.93);">k</button>
+          <button style="flex: 1; max-width: 46px; height: var(--key-h); border: 1px solid var(--line-strong); background: var(--paper-2); color: var(--ink); font-size: 12.5px; font-weight: 600; text-transform: uppercase; display: grid; place-items: center; user-select: none; transition: border-color 0.12s ease;" style-hover="border-color: var(--metal);" style-active="transform: scale(0.93);">l</button>
+        </div>
+        <div style="display: flex; justify-content: center; gap: 6px;">
+          <button aria-label="submit guess" style="flex: 1.7; max-width: 78px; height: var(--key-h); border: 1px solid var(--metal-deep); background: var(--metal-soft); color: var(--ink); font-size: 10px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; display: grid; place-items: center; user-select: none; transition: background 0.12s ease;" style-hover="background: var(--metal); color: var(--stamp-text);" style-active="transform: scale(0.93);">enter</button>
+          <button style="flex: 1; max-width: 46px; height: var(--key-h); border: 1px solid var(--line-strong); background: var(--paper-2); color: var(--ink); font-size: 12.5px; font-weight: 600; text-transform: uppercase; display: grid; place-items: center; user-select: none; transition: border-color 0.12s ease;" style-hover="border-color: var(--metal);" style-active="transform: scale(0.93);">z</button>
+          <button style="flex: 1; max-width: 46px; height: var(--key-h); border: 1px solid var(--line-strong); background: var(--paper-2); color: var(--ink); font-size: 12.5px; font-weight: 600; text-transform: uppercase; display: grid; place-items: center; user-select: none; transition: border-color 0.12s ease;" style-hover="border-color: var(--metal);" style-active="transform: scale(0.93);">x</button>
+          <button style="flex: 1; max-width: 46px; height: var(--key-h); border: 1px solid transparent; background: var(--dim); color: var(--stamp-text); opacity: 0.55; font-size: 12.5px; font-weight: 600; text-transform: uppercase; display: grid; place-items: center; user-select: none;" style-active="transform: scale(0.93);">c</button>
+          <button style="flex: 1; max-width: 46px; height: var(--key-h); border: 1px solid var(--line-strong); background: var(--paper-2); color: var(--ink); font-size: 12.5px; font-weight: 600; text-transform: uppercase; display: grid; place-items: center; user-select: none; transition: border-color 0.12s ease;" style-hover="border-color: var(--metal);" style-active="transform: scale(0.93);">v</button>
+          <button style="flex: 1; max-width: 46px; height: var(--key-h); border: 1px solid var(--line-strong); background: var(--paper-2); color: var(--ink); font-size: 12.5px; font-weight: 600; text-transform: uppercase; display: grid; place-items: center; user-select: none; transition: border-color 0.12s ease;" style-hover="border-color: var(--metal);" style-active="transform: scale(0.93);">b</button>
+          <button style="flex: 1; max-width: 46px; height: var(--key-h); border: 1px solid transparent; background: var(--dim); color: var(--stamp-text); opacity: 0.55; font-size: 12.5px; font-weight: 600; text-transform: uppercase; display: grid; place-items: center; user-select: none;" style-active="transform: scale(0.93);">n</button>
+          <button style="flex: 1; max-width: 46px; height: var(--key-h); border: 1px solid var(--line-strong); background: var(--paper-2); color: var(--ink); font-size: 12.5px; font-weight: 600; text-transform: uppercase; display: grid; place-items: center; user-select: none; transition: border-color 0.12s ease;" style-hover="border-color: var(--metal);" style-active="transform: scale(0.93);">m</button>
+          <button aria-label="delete letter" style="flex: 1.7; max-width: 78px; height: var(--key-h); border: 1px solid var(--line-strong); background: var(--paper-2); color: var(--ink); font-size: 13px; font-weight: 600; display: grid; place-items: center; user-select: none; transition: border-color 0.12s ease;" style-hover="border-color: var(--metal);" style-active="transform: scale(0.93);">⌫</button>
+        </div>
+      </div>
+    </section>
+
+    <aside style="flex: 1 1 250px; max-width: 300px; min-width: 240px; order: 3; display: flex; flex-direction: column; gap: 18px; animation: riseIn 0.5s ease 0.18s backwards;">
+      <section style="background: var(--panel); border: 1px solid var(--line); box-shadow: inset 0 0 0 4px var(--paper), inset 0 0 0 5px var(--line); padding: 22px 20px; text-align: center;">
+        <sc-if value="{{ sealed }}" hint-placeholder-val="{{ true }}">
+          <div style="width: 118px; height: 118px; margin: 2px auto 14px; border-radius: 50%; border: 2px solid var(--metal); display: grid; place-items: center; animation: sealGlow 3s ease-in-out infinite;">
+            <div style="width: 94px; height: 94px; border-radius: 50%; border: 1px solid var(--metal-deep); background: var(--metal-soft); display: grid; place-items: center;">
+              <svg viewBox="0 0 24 24" width="34" height="34" aria-hidden="true" style="color: var(--metal-deep);"><path fill="currentColor" d="M12 2a5 5 0 0 0-5 5v3H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2h-1V7a5 5 0 0 0-5-5Zm-3 5a3 3 0 1 1 6 0v3H9V7Zm3 7a1.75 1.75 0 0 1 .9 3.25V19a.9.9 0 0 1-1.8 0v-1.75A1.75 1.75 0 0 1 12 14Z"></path></svg>
+            </div>
+          </div>
+          <div style="font-size: 11px; letter-spacing: 0.28em; text-transform: uppercase; font-weight: 700;">Word sealed in a TEE</div>
+        </sc-if>
+        <sc-if value="{{ unsealed }}" hint-placeholder-val="{{ false }}">
+          <div style="width: 118px; height: 118px; margin: 2px auto 14px; border-radius: 50%; border: 2px solid var(--ok); display: grid; place-items: center;">
+            <div style="width: 94px; height: 94px; border-radius: 50%; border: 1px solid var(--ok); background: rgba(30, 107, 71, 0.12); display: grid; place-items: center; font-family: Cinzel, serif; font-weight: 900; font-size: 34px; color: var(--ok);">✓</div>
+          </div>
+          <div style="font-size: 11px; letter-spacing: 0.28em; text-transform: uppercase; font-weight: 700; color: var(--ok);">Unsealed — it was “Vapor”</div>
+        </sc-if>
+        <p style="margin: 10px 0 0; font-size: 10.5px; line-height: 1.7; color: var(--muted);">Encrypted on Sepolia inside iExec Nox. While the round is live, <strong style="color: var(--ink);">nobody can read it</strong> — not the server, not the devs, not us. Hints are computed on ciphertext; only the colours ever decrypt.</p>
+      </section>
+      <section style="background: var(--panel); border: 1px solid var(--line); padding: 18px;">
+        <div style="font-size: 10px; letter-spacing: 0.3em; text-transform: uppercase; color: var(--muted); margin-bottom: 12px;">How the vault works</div>
+        <div style="display: flex; flex-direction: column; gap: 12px;">
+          <div style="display: flex; gap: 12px; align-items: baseline;">
+            <span style="font-family: Cinzel, serif; font-weight: 700; font-size: 14px; color: var(--metal-deep); flex: none; width: 22px;">I.</span>
+            <p style="margin: 0; font-size: 10.5px; line-height: 1.6; color: var(--muted);"><strong style="color: var(--ink);">Sealed.</strong> A CSPRNG picks the word; only encrypted handles ever touch the chain.</p>
+          </div>
+          <div style="display: flex; gap: 12px; align-items: baseline;">
+            <span style="font-family: Cinzel, serif; font-weight: 700; font-size: 14px; color: var(--metal-deep); flex: none; width: 22px;">II.</span>
+            <p style="margin: 0; font-size: 10.5px; line-height: 1.6; color: var(--muted);"><strong style="color: var(--ink);">Hinted.</strong> Each guess is scored inside an Intel TDX enclave — ≈95 encrypted ops per row.</p>
+          </div>
+          <div style="display: flex; gap: 12px; align-items: baseline;">
+            <span style="font-family: Cinzel, serif; font-weight: 700; font-size: 14px; color: var(--metal-deep); flex: none; width: 22px;">III.</span>
+            <p style="margin: 0; font-size: 10.5px; line-height: 1.6; color: var(--muted);"><strong style="color: var(--ink);">Audited.</strong> When the round ends the word is unsealed — replay every hint yourself.</p>
+          </div>
+        </div>
+      </section>
+      <div style="text-align: center; font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--muted);">✓ correct &nbsp;·&nbsp; ≈ present &nbsp;·&nbsp; × absent</div>
+    </aside>
+  </main>
+
+  <footer style="position: relative; z-index: 1; max-width: 1240px; width: 100%; margin: 0 auto; padding: 8px 28px 20px; animation: riseIn 0.5s ease 0.26s backwards;">
+    <div style="border-top: 1px solid var(--line); padding-top: 10px; overflow: hidden; white-space: nowrap; text-align: center; font-size: 7.5px; letter-spacing: 0.3em; text-transform: uppercase; color: var(--muted); opacity: 0.65;">the word is mathematically un-leakable while the round is live · the word is mathematically un-leakable while the round is live · the word is mathematically un-leakable while the round is live</div>
+    <div style="margin-top: 8px; text-align: center; font-size: 10px; color: var(--muted);"><a href="https://sepolia.etherscan.io/address/0x5246befd9bc31b44d90e274c758cce3d24a0490f" target="_blank" rel="noopener">contract ↗</a><span style="margin: 0 8px;">·</span>MIT<span style="margin: 0 8px;">·</span>word list from Knuth's Stanford GraphBase</div>
+  </footer>
+</div>
+
+<sc-if value="{{ helpOpen }}" hint-placeholder-val="{{ false }}">
+  <div onClick="{{ backdropCloseHelp }}" style="position: fixed; inset: 0; background: rgba(15, 20, 14, 0.55); backdrop-filter: blur(3px); display: grid; place-items: center; z-index: 50; animation: fadeIn 0.2s ease; padding: 16px;">
+    <div role="dialog" aria-modal="true" style="background: var(--panel); border: 1px solid var(--line-strong); box-shadow: inset 0 0 0 5px var(--panel), inset 0 0 0 6px var(--line-strong), 0 30px 80px -20px rgba(10, 15, 10, 0.6); padding: 30px 28px; max-width: 460px; width: 100%; animation: certIn 0.3s cubic-bezier(0.22, 1.2, 0.36, 1); max-height: 86dvh; overflow-y: auto;">
+      <div style="text-align: center; font-size: 10px; letter-spacing: 0.34em; text-transform: uppercase; color: var(--metal-deep);">✦ &nbsp;Rules of play&nbsp; ✦</div>
+      <h2 style="margin: 8px 0 14px; text-align: center; font-family: Cinzel, serif; font-weight: 700; font-size: 24px; letter-spacing: 0.08em;">How to Play</h2>
+      <p style="margin: 0 0 12px; font-size: 11.5px; line-height: 1.75; color: var(--muted);">Guess the five-letter word in six tries. Six guesses per wallet, per round. First all-green row takes the pot.</p>
+      <div style="display: flex; justify-content: center; gap: 8px; margin: 14px 0;">
+        <div style="width: 40px; height: 40px; background: var(--ok); color: var(--stamp-text); display: grid; place-items: center; font-family: Cinzel, serif; font-weight: 700; font-size: 17px;">✓</div>
+        <div style="width: 40px; height: 40px; background: var(--warm); color: var(--stamp-text); display: grid; place-items: center; font-family: Cinzel, serif; font-weight: 700; font-size: 17px;">≈</div>
+        <div style="width: 40px; height: 40px; background: var(--dim); color: var(--stamp-text); display: grid; place-items: center; font-family: Cinzel, serif; font-weight: 700; font-size: 17px;">×</div>
+      </div>
+      <p style="margin: 0 0 12px; text-align: center; font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted);">✓ right letter, right spot · ≈ in the word · × absent</p>
+      <div style="height: 1px; background: var(--line); margin: 16px 0;"></div>
+      <p style="margin: 0 0 18px; font-size: 11.5px; line-height: 1.75; color: var(--muted);">The twist: the secret lives <strong style="color: var(--ink);">encrypted inside a TEE</strong> (iExec Nox). The chain, the server, even the developers cannot read it — hints are computed <em>on ciphertext</em> and only the colours decrypt. Wins are verified on-chain with a KMS proof, and when the round ends the word is unsealed so anyone can audit every hint.</p>
+      <button onClick="{{ closeHelp }}" style="width: 100%; height: 46px; border: 1px solid var(--metal-deep); background: var(--metal); color: var(--stamp-text); font-size: 11px; font-weight: 700; letter-spacing: 0.22em; text-transform: uppercase; transition: filter 0.15s ease;" style-hover="filter: brightness(1.1);">Got it</button>
+    </div>
+  </div>
+</sc-if>
+
+<sc-if value="{{ winOpen }}" hint-placeholder-val="{{ false }}">
+  <div onClick="{{ backdropCloseWin }}" style="position: fixed; inset: 0; background: rgba(15, 20, 14, 0.55); backdrop-filter: blur(3px); display: grid; place-items: center; z-index: 50; animation: fadeIn 0.2s ease; padding: 16px;">
+    <div role="dialog" aria-modal="true" style="background: var(--panel); border: 1px solid var(--metal-deep); box-shadow: inset 0 0 0 5px var(--panel), inset 0 0 0 6px var(--metal-deep), 0 30px 80px -20px rgba(10, 15, 10, 0.6); padding: 32px 30px; max-width: 460px; width: 100%; text-align: center; animation: certIn 0.35s cubic-bezier(0.22, 1.2, 0.36, 1); max-height: 86dvh; overflow-y: auto;">
+      <div style="font-size: 10px; letter-spacing: 0.34em; text-transform: uppercase; color: var(--metal-deep);">✦ &nbsp;Round № 42 · KMS-signed&nbsp; ✦</div>
+      <h2 style="margin: 8px 0 4px; font-family: Cinzel, serif; font-weight: 900; font-size: 26px; letter-spacing: 0.1em;">Certificate of Claim</h2>
+      <p style="margin: 0 0 16px; font-size: 11px; line-height: 1.7; color: var(--muted);">This certifies that the bearer produced an <strong style="color: var(--ok);">all-green row</strong> inside the enclave. The proof is verified on-chain — the pot pays your wallet directly. Nobody can take it from you.</p>
+      <div style="display: flex; justify-content: center; gap: 6px; margin: 6px 0 16px;">
+        <div style="width: 44px; height: 44px; background: var(--ok); color: var(--stamp-text); display: grid; place-items: center; font-family: Cinzel, serif; font-weight: 700; font-size: 19px; transform: rotate(-0.5deg);">V</div>
+        <div style="width: 44px; height: 44px; background: var(--ok); color: var(--stamp-text); display: grid; place-items: center; font-family: Cinzel, serif; font-weight: 700; font-size: 19px; transform: rotate(0.4deg);">A</div>
+        <div style="width: 44px; height: 44px; background: var(--ok); color: var(--stamp-text); display: grid; place-items: center; font-family: Cinzel, serif; font-weight: 700; font-size: 19px; transform: rotate(-0.3deg);">P</div>
+        <div style="width: 44px; height: 44px; background: var(--ok); color: var(--stamp-text); display: grid; place-items: center; font-family: Cinzel, serif; font-weight: 700; font-size: 19px; transform: rotate(0.5deg);">O</div>
+        <div style="width: 44px; height: 44px; background: var(--ok); color: var(--stamp-text); display: grid; place-items: center; font-family: Cinzel, serif; font-weight: 700; font-size: 19px; transform: rotate(-0.4deg);">R</div>
+      </div>
+      <div style="font-family: Cinzel, serif; font-weight: 900; font-size: 40px; color: var(--metal-deep); line-height: 1;">0.05 <span style="font-size: 18px;">ETH</span></div>
+      <button style="margin-top: 18px; width: 100%; height: 50px; border: 1px solid var(--metal-deep); background: var(--metal); color: var(--stamp-text); font-size: 12px; font-weight: 700; letter-spacing: 0.24em; text-transform: uppercase; box-shadow: 0 6px 22px -8px rgba(184, 145, 47, 0.7); transition: filter 0.15s ease, transform 0.08s ease;" style-hover="filter: brightness(1.1); transform: translateY(-1px);">Claim the pot</button>
+      <button onClick="{{ closeWin }}" style="margin-top: 10px; width: 100%; height: 42px; border: 1px solid var(--line-strong); background: transparent; color: var(--muted); font-size: 10.5px; font-weight: 600; letter-spacing: 0.2em; text-transform: uppercase; transition: border-color 0.15s ease, color 0.15s ease;" style-hover="border-color: var(--metal); color: var(--ink);">Later</button>
+    </div>
+  </div>
+</sc-if>
+
+<sc-if value="{{ revealOpen }}" hint-placeholder-val="{{ false }}">
+  <div onClick="{{ backdropCloseReveal }}" style="position: fixed; inset: 0; background: rgba(15, 20, 14, 0.55); backdrop-filter: blur(3px); display: grid; place-items: center; z-index: 50; animation: fadeIn 0.2s ease; padding: 16px;">
+    <div role="dialog" aria-modal="true" style="background: var(--panel); border: 1px solid var(--line-strong); box-shadow: inset 0 0 0 5px var(--panel), inset 0 0 0 6px var(--line-strong), 0 30px 80px -20px rgba(10, 15, 10, 0.6); padding: 32px 30px; max-width: 460px; width: 100%; text-align: center; animation: certIn 0.35s cubic-bezier(0.22, 1.2, 0.36, 1); max-height: 86dvh; overflow-y: auto;">
+      <div style="font-size: 10px; letter-spacing: 0.34em; text-transform: uppercase; color: var(--metal-deep);">✦ &nbsp;Round № 42 · settled&nbsp; ✦</div>
+      <h2 style="margin: 8px 0 4px; font-family: Cinzel, serif; font-weight: 900; font-size: 26px; letter-spacing: 0.1em;">The Vault Is Open</h2>
+      <p style="margin: 0 0 16px; font-size: 11px; line-height: 1.7; color: var(--muted);">The round is over and the secret is unsealed for everyone. Replay your hints against it — every colour handed out can be audited.</p>
+      <div style="display: flex; justify-content: center; gap: 6px; margin: 6px 0 18px;">
+        <div style="width: 44px; height: 44px; background: var(--ok); color: var(--stamp-text); display: grid; place-items: center; font-family: Cinzel, serif; font-weight: 700; font-size: 19px; transform: rotate(-0.5deg);">V</div>
+        <div style="width: 44px; height: 44px; background: var(--ok); color: var(--stamp-text); display: grid; place-items: center; font-family: Cinzel, serif; font-weight: 700; font-size: 19px; transform: rotate(0.4deg);">A</div>
+        <div style="width: 44px; height: 44px; background: var(--ok); color: var(--stamp-text); display: grid; place-items: center; font-family: Cinzel, serif; font-weight: 700; font-size: 19px; transform: rotate(-0.3deg);">P</div>
+        <div style="width: 44px; height: 44px; background: var(--ok); color: var(--stamp-text); display: grid; place-items: center; font-family: Cinzel, serif; font-weight: 700; font-size: 19px; transform: rotate(0.5deg);">O</div>
+        <div style="width: 44px; height: 44px; background: var(--ok); color: var(--stamp-text); display: grid; place-items: center; font-family: Cinzel, serif; font-weight: 700; font-size: 19px; transform: rotate(-0.4deg);">R</div>
+      </div>
+      <button onClick="{{ closeReveal }}" style="width: 100%; height: 46px; border: 1px solid var(--metal-deep); background: var(--metal); color: var(--stamp-text); font-size: 11px; font-weight: 700; letter-spacing: 0.22em; text-transform: uppercase; transition: filter 0.15s ease;" style-hover="filter: brightness(1.1);">Wait for the next round</button>
+      <a href="https://sepolia.etherscan.io/tx/0x28fdc0c3a4689c43a3f071946ffa502a09eb1f3afdb09bc4c349295ca4d2cd03" target="_blank" rel="noopener" style="display: inline-block; margin-top: 12px; font-size: 9.5px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--muted);">payout tx ↗</a>
+    </div>
+  </div>
+</sc-if>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;phase&quot;: {&quot;editor&quot;: &quot;enum&quot;, &quot;options&quot;: [&quot;playing&quot;, &quot;won&quot;, &quot;revealed&quot;], &quot;default&quot;: &quot;playing&quot;, &quot;tsType&quot;: &quot;string&quot;, &quot;section&quot;: &quot;Demo state&quot;}, &quot;metal&quot;: {&quot;editor&quot;: &quot;enum&quot;, &quot;options&quot;: [&quot;gold&quot;, &quot;copper&quot;, &quot;verdigris&quot;], &quot;default&quot;: &quot;gold&quot;, &quot;tsType&quot;: &quot;string&quot;, &quot;section&quot;: &quot;Finish&quot;}}">
+class Component extends DCLogic {
+  state = { theme: "light", sound: true, helpOpen: false, dismissedWin: false, dismissedReveal: false, countdown: "1h 12m" };
+  metals = {
+    gold: ["#b8912f", "#8a6d1f", "rgba(184,145,47,0.16)"],
+    copper: ["#b06b3f", "#8a4f2a", "rgba(176,107,63,0.16)"],
+    verdigris: ["#4f8a76", "#33604f", "rgba(79,138,118,0.16)"],
+  };
+  applyMetal() {
+    const m = this.metals[this.props.metal ?? "gold"] || this.metals.gold;
+    document.body.style.setProperty("--metal", m[0]);
+    document.body.style.setProperty("--metal-deep", m[1]);
+    document.body.style.setProperty("--metal-soft", m[2]);
+  }
+  componentDidMount() {
+    document.body.classList.toggle("cwx-dark", this.state.theme === "dark");
+    this.applyMetal();
+    this._deadline = Date.now() + (60 * 60 + 12 * 60) * 1000;
+    this._timer = setInterval(() => {
+      const s = Math.max(0, Math.floor((this._deadline - Date.now()) / 1000));
+      const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), sec = s % 60;
+      const text = h > 0 ? `${h}h ${String(m).padStart(2, "0")}m` : `${m}:${String(sec).padStart(2, "0")}`;
+      if (text !== this.state.countdown) this.setState({ countdown: text });
+    }, 1000);
+  }
+  componentDidUpdate(prevProps) {
+    if (prevProps.phase !== this.props.phase) this.setState({ dismissedWin: false, dismissedReveal: false });
+    if (prevProps.metal !== this.props.metal) this.applyMetal();
+  }
+  componentWillUnmount() { clearInterval(this._timer); }
+  renderVals() {
+    const phase = this.props.phase ?? "playing";
+    const isWon = phase === "won", isRevealed = phase === "revealed";
+    const statusText = isWon ? "All green — the vault is yours. Claim the pot."
+      : isRevealed ? "Round settled — the word is unsealed for audit."
+      : "Decrypting colours via the KMS…";
+    return {
+      countdown: isRevealed ? "settled" : this.state.countdown,
+      statusText,
+      statusColor: isWon ? "var(--metal-deep)" : isRevealed ? "var(--ok)" : "var(--muted)",
+      showSpinner: !isWon && !isRevealed,
+      showPendingRow: !isWon && !isRevealed,
+      showSolvedRow: isWon || isRevealed,
+      sealed: !isRevealed,
+      unsealed: isRevealed,
+      helpOpen: this.state.helpOpen,
+      winOpen: isWon && !this.state.dismissedWin,
+      revealOpen: isRevealed && !this.state.dismissedReveal,
+      soundIcon: this.state.sound ? "♪" : "∅",
+      themeIcon: this.state.theme === "dark" ? "☾" : "☀",
+      toggleSound: () => this.setState(s => ({ sound: !s.sound })),
+      toggleTheme: () => this.setState(s => {
+        const theme = s.theme === "dark" ? "light" : "dark";
+        document.body.classList.toggle("cwx-dark", theme === "dark");
+        return { theme };
+      }),
+      openHelp: () => this.setState({ helpOpen: true }),
+      closeHelp: () => this.setState({ helpOpen: false }),
+      backdropCloseHelp: (e) => { if (e.target === e.currentTarget) this.setState({ helpOpen: false }); },
+      closeWin: () => this.setState({ dismissedWin: true }),
+      backdropCloseWin: (e) => { if (e.target === e.currentTarget) this.setState({ dismissedWin: true }); },
+      closeReveal: () => this.setState({ dismissedReveal: true }),
+      backdropCloseReveal: (e) => { if (e.target === e.currentTarget) this.setState({ dismissedReveal: true }); },
+    };
+  }
+}
+</script>
+</body>
+</html>

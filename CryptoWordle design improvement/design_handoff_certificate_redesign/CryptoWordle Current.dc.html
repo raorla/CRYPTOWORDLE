@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700;800&display=swap" rel="stylesheet">
+<style>
+  html, body { margin: 0; padding: 0; height: 100%; }
+  body {
+    --font-mono: "JetBrains Mono", "Fira Code", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    --bg: #0b0b16;
+    --bg-glow: radial-gradient(1200px 600px at 50% -10%, rgba(139, 92, 246, 0.16), transparent 70%);
+    --panel: #14142a;
+    --panel-2: #1b1b36;
+    --text: #eef0ff;
+    --muted: #8a8db8;
+    --border: #26264a;
+    --accent: #8b5cf6;
+    --accent-soft: rgba(139, 92, 246, 0.18);
+    --accent-glow: 0 0 18px rgba(139, 92, 246, 0.55);
+    --green: #10c46e;
+    --yellow: #e7a917;
+    --gray: #3a3d5c;
+    --tile-empty-border: #2b2d52;
+    --tile-typing-border: #6d6fa8;
+    --danger: #ff5470;
+    --tile-size: min(clamp(44px, 12.5vw, 64px), max(40px, calc((100dvh - 385px) / 6)));
+    --key-h: clamp(42px, 6.4vh, 56px);
+    --radius: 12px;
+    font-family: var(--font-mono);
+    background: var(--bg);
+    background-image: var(--bg-glow);
+    background-attachment: fixed;
+    color: var(--text);
+    -webkit-font-smoothing: antialiased;
+    overscroll-behavior: none;
+  }
+  body.cw-light {
+    --bg: #f4f3fc;
+    --bg-glow: radial-gradient(1200px 600px at 50% -10%, rgba(139, 92, 246, 0.1), transparent 70%);
+    --panel: #ffffff;
+    --panel-2: #eceaf8;
+    --text: #191938;
+    --muted: #6b6e93;
+    --border: #d9d7ee;
+    --accent-soft: rgba(139, 92, 246, 0.12);
+    --green: #0aa85c;
+    --yellow: #d99a06;
+    --gray: #9598b4;
+    --tile-empty-border: #c9cbe4;
+    --tile-typing-border: #8f92c4;
+  }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { color: var(--accent); }
+  button { font-family: inherit; cursor: pointer; }
+  @keyframes lockPulse { 0%, 100% { transform: scale(1); filter: drop-shadow(0 0 2px rgba(139,92,246,0.8)); } 50% { transform: scale(1.12); filter: drop-shadow(0 0 10px rgba(139,92,246,1)); } }
+  @keyframes shimmer { to { background-position: -220% 0; } }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @keyframes pillIn { from { opacity: 0; transform: translateY(-6px); } }
+  @keyframes fadeIn { from { opacity: 0; } }
+  @keyframes modalIn { from { opacity: 0; transform: scale(0.9) translateY(12px); } }
+  @keyframes pop { 0% { transform: scale(0.85); } 60% { transform: scale(1.08); } 100% { transform: scale(1); } }
+</style>
+</helmet>
+<div style="min-height: 100dvh; max-width: 560px; margin: 0 auto; display: flex; flex-direction: column; padding: 0 12px 0;">
+  <header style="display: flex; align-items: center; justify-content: space-between; padding: 14px 2px 10px; border-bottom: 1px solid var(--border); gap: 8px;">
+    <div style="display: flex; align-items: baseline; gap: 8px; min-width: 0;">
+      <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" style="color: var(--accent); filter: drop-shadow(0 0 6px rgba(139,92,246,0.7)); align-self: center; flex: none;">
+        <path fill="currentColor" d="M12 2a5 5 0 0 0-5 5v3H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2h-1V7a5 5 0 0 0-5-5Zm-3 5a3 3 0 1 1 6 0v3H9V7Zm3 7a1.75 1.75 0 0 1 .9 3.25V19a.9.9 0 0 1-1.8 0v-1.75A1.75 1.75 0 0 1 12 14Z"></path>
+      </svg>
+      <span style="font-weight: 800; letter-spacing: 0.06em; font-size: 1.05rem; white-space: nowrap;">CRYPTO<span style="color: var(--accent);">WORDLE</span></span>
+      <span style="color: var(--muted); font-size: 0.68rem; white-space: nowrap;">on iExec&nbsp;Nox</span>
+    </div>
+    <div style="display: flex; gap: 8px; align-items: center;">
+      <button onClick="{{ openHelp }}" aria-label="How to play" title="How to play" style="width: 36px; height: 36px; border-radius: 10px; border: 1px solid var(--border); background: var(--panel); color: var(--text); font-size: 1rem; display: grid; place-items: center; transition: transform 0.08s ease, border-color 0.15s ease;" style-hover="border-color: var(--accent); transform: translateY(-1px);">?</button>
+      <button onClick="{{ toggleSound }}" aria-label="Toggle sound" title="Sound" style="width: 36px; height: 36px; border-radius: 10px; border: 1px solid var(--border); background: var(--panel); color: var(--text); font-size: 1rem; display: grid; place-items: center; transition: transform 0.08s ease, border-color 0.15s ease;" style-hover="border-color: var(--accent); transform: translateY(-1px);">{{ soundIcon }}</button>
+      <button onClick="{{ toggleTheme }}" aria-label="Toggle theme" title="Theme" style="width: 36px; height: 36px; border-radius: 10px; border: 1px solid var(--border); background: var(--panel); color: var(--text); font-size: 1rem; display: grid; place-items: center; transition: transform 0.08s ease, border-color 0.15s ease;" style-hover="border-color: var(--accent); transform: translateY(-1px);">{{ themeIcon }}</button>
+      <button style="height: 36px; padding: 0 14px; border-radius: 10px; border: 1px solid var(--accent); background: var(--accent-soft); color: var(--text); font-weight: 700; font-size: 0.82rem; letter-spacing: 0.02em; transition: box-shadow 0.15s ease, transform 0.08s ease;" style-hover="box-shadow: var(--accent-glow); transform: translateY(-1px);">Connect</button>
+    </div>
+  </header>
+
+  <section style="display: flex; align-items: stretch; justify-content: center; flex-wrap: wrap; gap: 8px; padding: 12px 0 4px;">
+    <div title="Winner takes the pot" style="background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 8px 14px; display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 86px;">
+      <span style="color: var(--muted); font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.14em;">Pot</span>
+      <span style="font-weight: 800; font-size: 0.95rem; font-variant-numeric: tabular-nums; color: var(--accent); text-shadow: 0 0 12px rgba(139,92,246,0.5);">0.05 ETH</span>
+    </div>
+    <div style="background: var(--panel); border: 1px dashed var(--accent); border-radius: 12px; padding: 8px 14px; display: flex; flex-direction: row; align-items: center; gap: 8px; font-size: 0.74rem; color: var(--muted); justify-content: center;">
+      <span aria-hidden="true" style="display: inline-block; animation: lockPulse 2.4s ease-in-out infinite;">🔒</span>
+      <span>word sealed in a TEE</span>
+    </div>
+    <div title="Time left in this round" style="background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 8px 14px; display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 86px;">
+      <span style="color: var(--muted); font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.14em;">Ends in</span>
+      <span style="font-weight: 800; font-size: 0.95rem; font-variant-numeric: tabular-nums;">{{ countdown }}</span>
+    </div>
+    <div title="Guesses by all players" style="background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 8px 14px; display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 86px;">
+      <span style="color: var(--muted); font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.14em;">Guesses</span>
+      <span style="font-weight: 800; font-size: 0.95rem; font-variant-numeric: tabular-nums;">9</span>
+    </div>
+  </section>
+
+  <main style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; padding: 10px 0 16px;">
+    <div style="display: flex; align-items: center; gap: 10px; background: var(--panel-2); border: 1px solid var(--accent); border-radius: 999px; padding: 8px 18px; font-size: 0.8rem; box-shadow: var(--accent-glow); animation: pillIn 0.25s ease; max-width: 100%; text-align: center;">
+      <span style="width: 12px; height: 12px; flex: none; border-radius: 50%; border: 2px solid var(--accent-soft); border-top-color: var(--accent); animation: spin 0.8s linear infinite;"></span>
+      🔓 Decrypting colors via the KMS…
+    </div>
+
+    <div role="grid" aria-label="Wordle board" style="display: grid; grid-template-rows: repeat(6, var(--tile-size)); gap: 7px;">
+      <div role="row" style="display: grid; grid-template-columns: repeat(5, var(--tile-size)); gap: 7px;">
+        <div data-sym="×" style="width: var(--tile-size); height: var(--tile-size); border-radius: 12px; border: 2px solid transparent; background: var(--gray); color: #fff; display: grid; place-items: center; font-size: calc(var(--tile-size) * 0.46); font-weight: 800; text-transform: uppercase; position: relative;" style-after="content: attr(data-sym); position: absolute; right: 5px; bottom: 2px; font-size: calc(var(--tile-size) * 0.19); font-weight: 700; opacity: 0.85;">C</div>
+        <div data-sym="≈" style="width: var(--tile-size); height: var(--tile-size); border-radius: 12px; border: 2px solid transparent; background: var(--yellow); color: #fff; display: grid; place-items: center; font-size: calc(var(--tile-size) * 0.46); font-weight: 800; text-transform: uppercase; position: relative;" style-after="content: attr(data-sym); position: absolute; right: 5px; bottom: 2px; font-size: calc(var(--tile-size) * 0.19); font-weight: 700; opacity: 0.85;">R</div>
+        <div data-sym="≈" style="width: var(--tile-size); height: var(--tile-size); border-radius: 12px; border: 2px solid transparent; background: var(--yellow); color: #fff; display: grid; place-items: center; font-size: calc(var(--tile-size) * 0.46); font-weight: 800; text-transform: uppercase; position: relative;" style-after="content: attr(data-sym); position: absolute; right: 5px; bottom: 2px; font-size: calc(var(--tile-size) * 0.19); font-weight: 700; opacity: 0.85;">A</div>
+        <div data-sym="×" style="width: var(--tile-size); height: var(--tile-size); border-radius: 12px; border: 2px solid transparent; background: var(--gray); color: #fff; display: grid; place-items: center; font-size: calc(var(--tile-size) * 0.46); font-weight: 800; text-transform: uppercase; position: relative;" style-after="content: attr(data-sym); position: absolute; right: 5px; bottom: 2px; font-size: calc(var(--tile-size) * 0.19); font-weight: 700; opacity: 0.85;">N</div>
+        <div data-sym="×" style="width: var(--tile-size); height: var(--tile-size); border-radius: 12px; border: 2px solid transparent; background: var(--gray); color: #fff; display: grid; place-items: center; font-size: calc(var(--tile-size) * 0.46); font-weight: 800; text-transform: uppercase; position: relative;" style-after="content: attr(data-sym); position: absolute; right: 5px; bottom: 2px; font-size: calc(var(--tile-size) * 0.19); font-weight: 700; opacity: 0.85;">E</div>
+      </div>
+      <div role="row" style="display: grid; grid-template-columns: repeat(5, var(--tile-size)); gap: 7px;">
+        <div data-sym="≈" style="width: var(--tile-size); height: var(--tile-size); border-radius: 12px; border: 2px solid transparent; background: var(--yellow); color: #fff; display: grid; place-items: center; font-size: calc(var(--tile-size) * 0.46); font-weight: 800; text-transform: uppercase; position: relative;" style-after="content: attr(data-sym); position: absolute; right: 5px; bottom: 2px; font-size: calc(var(--tile-size) * 0.19); font-weight: 700; opacity: 0.85;">P</div>
+        <div data-sym="≈" style="width: var(--tile-size); height: var(--tile-size); border-radius: 12px; border: 2px solid transparent; background: var(--yellow); color: #fff; display: grid; place-items: center; font-size: calc(var(--tile-size) * 0.46); font-weight: 800; text-transform: uppercase; position: relative;" style-after="content: attr(data-sym); position: absolute; right: 5px; bottom: 2px; font-size: calc(var(--tile-size) * 0.19); font-weight: 700; opacity: 0.85;">O</div>
+        <div data-sym="≈" style="width: var(--tile-size); height: var(--tile-size); border-radius: 12px; border: 2px solid transparent; background: var(--yellow); color: #fff; display: grid; place-items: center; font-size: calc(var(--tile-size) * 0.46); font-weight: 800; text-transform: uppercase; position: relative;" style-after="content: attr(data-sym); position: absolute; right: 5px; bottom: 2px; font-size: calc(var(--tile-size) * 0.19); font-weight: 700; opacity: 0.85;">R</div>
+        <div data-sym="×" style="width: var(--tile-size); height: var(--tile-size); border-radius: 12px; border: 2px solid transparent; background: var(--gray); color: #fff; display: grid; place-items: center; font-size: calc(var(--tile-size) * 0.46); font-weight: 800; text-transform: uppercase; position: relative;" style-after="content: attr(data-sym); position: absolute; right: 5px; bottom: 2px; font-size: calc(var(--tile-size) * 0.19); font-weight: 700; opacity: 0.85;">C</div>
+        <div data-sym="×" style="width: var(--tile-size); height: var(--tile-size); border-radius: 12px; border: 2px solid transparent; background: var(--gray); color: #fff; display: grid; place-items: center; font-size: calc(var(--tile-size) * 0.46); font-weight: 800; text-transform: uppercase; position: relative;" style-after="content: attr(data-sym); position: absolute; right: 5px; bottom: 2px; font-size: calc(var(--tile-size) * 0.19); font-weight: 700; opacity: 0.85;">H</div>
+      </div>
+      <div role="row" style="display: grid; grid-template-columns: repeat(5, var(--tile-size)); gap: 7px;">
+        <div aria-label="V: decrypting" style="width: var(--tile-size); height: var(--tile-size); border-radius: 12px; border: 2px solid var(--accent); background: linear-gradient(110deg, var(--panel) 30%, var(--accent-soft) 45%, var(--panel) 60%); background-size: 220% 100%; animation: shimmer 1.4s linear infinite; display: grid; place-items: center; font-size: calc(var(--tile-size) * 0.46); font-weight: 800; text-transform: uppercase; position: relative;">V</div>
+        <div aria-label="A: decrypting" style="width: var(--tile-size); height: var(--tile-size); border-radius: 12px; border: 2px solid var(--accent); background: linear-gradient(110deg, var(--panel) 30%, var(--accent-soft) 45%, var(--panel) 60%); background-size: 220% 100%; animation: shimmer 1.4s linear infinite; display: grid; place-items: center; font-size: calc(var(--tile-size) * 0.46); font-weight: 800; text-transform: uppercase; position: relative;">A</div>
+        <div aria-label="P: decrypting" style="width: var(--tile-size); height: var(--tile-size); border-radius: 12px; border: 2px solid var(--accent); background: linear-gradient(110deg, var(--panel) 30%, var(--accent-soft) 45%, var(--panel) 60%); background-size: 220% 100%; animation: shimmer 1.4s linear infinite; display: grid; place-items: center; font-size: calc(var(--tile-size) * 0.46); font-weight: 800; text-transform: uppercase; position: relative;">P</div>
+        <div aria-label="O: decrypting" style="width: var(--tile-size); height: var(--tile-size); border-radius: 12px; border: 2px solid var(--accent); background: linear-gradient(110deg, var(--panel) 30%, var(--accent-soft) 45%, var(--panel) 60%); background-size: 220% 100%; animation: shimmer 1.4s linear infinite; display: grid; place-items: center; font-size: calc(var(--tile-size) * 0.46); font-weight: 800; text-transform: uppercase; position: relative;">O</div>
+        <div aria-label="R: decrypting" style="width: var(--tile-size); height: var(--tile-size); border-radius: 12px; border: 2px solid var(--accent); background: linear-gradient(110deg, var(--panel) 30%, var(--accent-soft) 45%, var(--panel) 60%); background-size: 220% 100%; animation: shimmer 1.4s linear infinite; display: grid; place-items: center; font-size: calc(var(--tile-size) * 0.46); font-weight: 800; text-transform: uppercase; position: relative;">R</div>
+      </div>
+      <div role="row" style="display: grid; grid-template-columns: repeat(5, var(--tile-size)); gap: 7px;">
+        <div aria-label="empty" style="width: var(--tile-size); height: var(--tile-size); border-radius: 12px; border: 2px solid var(--tile-empty-border); background: transparent; display: grid; place-items: center; font-size: calc(var(--tile-size) * 0.46); font-weight: 800; text-transform: uppercase; position: relative;"></div>
+        <div aria-label="empty" style="width: var(--tile-size); height: var(--tile-size); border-radius: 12px; border: 2px solid var(--tile-empty-border); background: transparent; display: grid; place-items: center; font-size: calc(var(--tile-size) * 0.46); font-weight: 800; text-transform: uppercase; position: relative;"></div>
+        <div aria-label="empty" style="width: var(--tile-size); height: var(--tile-size); border-radius: 12px; border: 2px solid var(--tile-empty-border); background: transparent; display: grid; place-items: center; font-size: calc(var(--tile-size) * 0.46); font-weight: 800; text-transform: uppercase; position: relative;"></div>
+        <div aria-label="empty" style="width: var(--tile-size); height: var(--tile-size); border-radius: 12px; border: 2px solid var(--tile-empty-border); background: transparent; display: grid; place-items: center; font-size: calc(var(--tile-size) * 0.46); font-weight: 800; text-transform: uppercase; position: relative;"></div>
+        <div aria-label="empty" style="width: var(--tile-size); height: var(--tile-size); border-radius: 12px; border: 2px solid var(--tile-empty-border); background: transparent; display: grid; place-items: center; font-size: calc(var(--tile-size) * 0.46); font-weight: 800; text-transform: uppercase; position: relative;"></div>
+      </div>
+      <div role="row" style="display: grid; grid-template-columns: repeat(5, var(--tile-size)); gap: 7px;">
+        <div aria-label="empty" style="width: var(--tile-size); height: var(--tile-size); border-radius: 12px; border: 2px solid var(--tile-empty-border); background: transparent; display: grid; place-items: center; font-size: calc(var(--tile-size) * 0.46); font-weight: 800; text-transform: uppercase; position: relative;"></div>
+        <div aria-label="empty" style="width: var(--tile-size); height: var(--tile-size); border-radius: 12px; border: 2px solid var(--tile-empty-border); background: transparent; display: grid; place-items: center; font-size: calc(var(--tile-size) * 0.46); font-weight: 800; text-transform: uppercase; position: relative;"></div>
+        <div aria-label="empty" style="width: var(--tile-size); height: var(--tile-size); border-radius: 12px; border: 2px solid var(--tile-empty-border); background: transparent; display: grid; place-items: center; font-size: calc(var(--tile-size) * 0.46); font-weight: 800; text-transform: uppercase; position: relative;"></div>
+        <div aria-label="empty" style="width: var(--tile-size); height: var(--tile-size); border-radius: 12px; border: 2px solid var(--tile-empty-border); background: transparent; display: grid; place-items: center; font-size: calc(var(--tile-size) * 0.46); font-weight: 800; text-transform: uppercase; position: relative;"></div>
+        <div aria-label="empty" style="width: var(--tile-size); height: var(--tile-size); border-radius: 12px; border: 2px solid var(--tile-empty-border); background: transparent; display: grid; place-items: center; font-size: calc(var(--tile-size) * 0.46); font-weight: 800; text-transform: uppercase; position: relative;"></div>
+      </div>
+      <div role="row" style="display: grid; grid-template-columns: repeat(5, var(--tile-size)); gap: 7px;">
+        <div aria-label="empty" style="width: var(--tile-size); height: var(--tile-size); border-radius: 12px; border: 2px solid var(--tile-empty-border); background: transparent; display: grid; place-items: center; font-size: calc(var(--tile-size) * 0.46); font-weight: 800; text-transform: uppercase; position: relative;"></div>
+        <div aria-label="empty" style="width: var(--tile-size); height: var(--tile-size); border-radius: 12px; border: 2px solid var(--tile-empty-border); background: transparent; display: grid; place-items: center; font-size: calc(var(--tile-size) * 0.46); font-weight: 800; text-transform: uppercase; position: relative;"></div>
+        <div aria-label="empty" style="width: var(--tile-size); height: var(--tile-size); border-radius: 12px; border: 2px solid var(--tile-empty-border); background: transparent; display: grid; place-items: center; font-size: calc(var(--tile-size) * 0.46); font-weight: 800; text-transform: uppercase; position: relative;"></div>
+        <div aria-label="empty" style="width: var(--tile-size); height: var(--tile-size); border-radius: 12px; border: 2px solid var(--tile-empty-border); background: transparent; display: grid; place-items: center; font-size: calc(var(--tile-size) * 0.46); font-weight: 800; text-transform: uppercase; position: relative;"></div>
+        <div aria-label="empty" style="width: var(--tile-size); height: var(--tile-size); border-radius: 12px; border: 2px solid var(--tile-empty-border); background: transparent; display: grid; place-items: center; font-size: calc(var(--tile-size) * 0.46); font-weight: 800; text-transform: uppercase; position: relative;"></div>
+      </div>
+    </div>
+
+    <div aria-label="On-screen keyboard" style="display: flex; flex-direction: column; gap: 7px; width: 100%; max-width: 500px; padding-bottom: 8px;">
+      <div style="display: flex; justify-content: center; gap: 6px;">
+        <button style="flex: 1; max-width: 44px; height: var(--key-h); border-radius: 9px; border: 1px solid var(--border); background: var(--panel-2); color: var(--text); font-size: 0.86rem; font-weight: 700; text-transform: uppercase; display: grid; place-items: center; user-select: none;" style-active="transform: scale(0.92);">q</button>
+        <button style="flex: 1; max-width: 44px; height: var(--key-h); border-radius: 9px; border: 1px solid var(--border); background: var(--panel-2); color: var(--text); font-size: 0.86rem; font-weight: 700; text-transform: uppercase; display: grid; place-items: center; user-select: none;" style-active="transform: scale(0.92);">w</button>
+        <button style="flex: 1; max-width: 44px; height: var(--key-h); border-radius: 9px; border: 1px solid transparent; background: var(--gray); color: #fff; opacity: 0.6; font-size: 0.86rem; font-weight: 700; text-transform: uppercase; display: grid; place-items: center; user-select: none;" style-active="transform: scale(0.92);">e</button>
+        <button style="flex: 1; max-width: 44px; height: var(--key-h); border-radius: 9px; border: 1px solid transparent; background: var(--yellow); color: #fff; font-size: 0.86rem; font-weight: 700; text-transform: uppercase; display: grid; place-items: center; user-select: none;" style-active="transform: scale(0.92);">r</button>
+        <button style="flex: 1; max-width: 44px; height: var(--key-h); border-radius: 9px; border: 1px solid var(--border); background: var(--panel-2); color: var(--text); font-size: 0.86rem; font-weight: 700; text-transform: uppercase; display: grid; place-items: center; user-select: none;" style-active="transform: scale(0.92);">t</button>
+        <button style="flex: 1; max-width: 44px; height: var(--key-h); border-radius: 9px; border: 1px solid var(--border); background: var(--panel-2); color: var(--text); font-size: 0.86rem; font-weight: 700; text-transform: uppercase; display: grid; place-items: center; user-select: none;" style-active="transform: scale(0.92);">y</button>
+        <button style="flex: 1; max-width: 44px; height: var(--key-h); border-radius: 9px; border: 1px solid var(--border); background: var(--panel-2); color: var(--text); font-size: 0.86rem; font-weight: 700; text-transform: uppercase; display: grid; place-items: center; user-select: none;" style-active="transform: scale(0.92);">u</button>
+        <button style="flex: 1; max-width: 44px; height: var(--key-h); border-radius: 9px; border: 1px solid var(--border); background: var(--panel-2); color: var(--text); font-size: 0.86rem; font-weight: 700; text-transform: uppercase; display: grid; place-items: center; user-select: none;" style-active="transform: scale(0.92);">i</button>
+        <button style="flex: 1; max-width: 44px; height: var(--key-h); border-radius: 9px; border: 1px solid transparent; background: var(--yellow); color: #fff; font-size: 0.86rem; font-weight: 700; text-transform: uppercase; display: grid; place-items: center; user-select: none;" style-active="transform: scale(0.92);">o</button>
+        <button style="flex: 1; max-width: 44px; height: var(--key-h); border-radius: 9px; border: 1px solid var(--border); background: var(--panel-2); color: var(--text); font-size: 0.86rem; font-weight: 700; text-transform: uppercase; display: grid; place-items: center; user-select: none;" style-active="transform: scale(0.92);">p</button>
+      </div>
+      <div style="display: flex; justify-content: center; gap: 6px;">
+        <button style="flex: 1; max-width: 44px; height: var(--key-h); border-radius: 9px; border: 1px solid transparent; background: var(--yellow); color: #fff; font-size: 0.86rem; font-weight: 700; text-transform: uppercase; display: grid; place-items: center; user-select: none;" style-active="transform: scale(0.92);">a</button>
+        <button style="flex: 1; max-width: 44px; height: var(--key-h); border-radius: 9px; border: 1px solid var(--border); background: var(--panel-2); color: var(--text); font-size: 0.86rem; font-weight: 700; text-transform: uppercase; display: grid; place-items: center; user-select: none;" style-active="transform: scale(0.92);">s</button>
+        <button style="flex: 1; max-width: 44px; height: var(--key-h); border-radius: 9px; border: 1px solid var(--border); background: var(--panel-2); color: var(--text); font-size: 0.86rem; font-weight: 700; text-transform: uppercase; display: grid; place-items: center; user-select: none;" style-active="transform: scale(0.92);">d</button>
+        <button style="flex: 1; max-width: 44px; height: var(--key-h); border-radius: 9px; border: 1px solid var(--border); background: var(--panel-2); color: var(--text); font-size: 0.86rem; font-weight: 700; text-transform: uppercase; display: grid; place-items: center; user-select: none;" style-active="transform: scale(0.92);">f</button>
+        <button style="flex: 1; max-width: 44px; height: var(--key-h); border-radius: 9px; border: 1px solid var(--border); background: var(--panel-2); color: var(--text); font-size: 0.86rem; font-weight: 700; text-transform: uppercase; display: grid; place-items: center; user-select: none;" style-active="transform: scale(0.92);">g</button>
+        <button style="flex: 1; max-width: 44px; height: var(--key-h); border-radius: 9px; border: 1px solid transparent; background: var(--gray); color: #fff; opacity: 0.6; font-size: 0.86rem; font-weight: 700; text-transform: uppercase; display: grid; place-items: center; user-select: none;" style-active="transform: scale(0.92);">h</button>
+        <button style="flex: 1; max-width: 44px; height: var(--key-h); border-radius: 9px; border: 1px solid var(--border); background: var(--panel-2); color: var(--text); font-size: 0.86rem; font-weight: 700; text-transform: uppercase; display: grid; place-items: center; user-select: none;" style-active="transform: scale(0.92);">j</button>
+        <button style="flex: 1; max-width: 44px; height: var(--key-h); border-radius: 9px; border: 1px solid var(--border); background: var(--panel-2); color: var(--text); font-size: 0.86rem; font-weight: 700; text-transform: uppercase; display: grid; place-items: center; user-select: none;" style-active="transform: scale(0.92);">k</button>
+        <button style="flex: 1; max-width: 44px; height: var(--key-h); border-radius: 9px; border: 1px solid var(--border); background: var(--panel-2); color: var(--text); font-size: 0.86rem; font-weight: 700; text-transform: uppercase; display: grid; place-items: center; user-select: none;" style-active="transform: scale(0.92);">l</button>
+      </div>
+      <div style="display: flex; justify-content: center; gap: 6px;">
+        <button aria-label="submit guess" style="flex: 1.6; max-width: 72px; height: var(--key-h); border-radius: 9px; border: 1px solid var(--border); background: var(--panel-2); color: var(--text); font-size: 0.68rem; font-weight: 700; text-transform: uppercase; display: grid; place-items: center; user-select: none;" style-active="transform: scale(0.92);">enter</button>
+        <button style="flex: 1; max-width: 44px; height: var(--key-h); border-radius: 9px; border: 1px solid var(--border); background: var(--panel-2); color: var(--text); font-size: 0.86rem; font-weight: 700; text-transform: uppercase; display: grid; place-items: center; user-select: none;" style-active="transform: scale(0.92);">z</button>
+        <button style="flex: 1; max-width: 44px; height: var(--key-h); border-radius: 9px; border: 1px solid var(--border); background: var(--panel-2); color: var(--text); font-size: 0.86rem; font-weight: 700; text-transform: uppercase; display: grid; place-items: center; user-select: none;" style-active="transform: scale(0.92);">x</button>
+        <button style="flex: 1; max-width: 44px; height: var(--key-h); border-radius: 9px; border: 1px solid transparent; background: var(--gray); color: #fff; opacity: 0.6; font-size: 0.86rem; font-weight: 700; text-transform: uppercase; display: grid; place-items: center; user-select: none;" style-active="transform: scale(0.92);">c</button>
+        <button style="flex: 1; max-width: 44px; height: var(--key-h); border-radius: 9px; border: 1px solid var(--border); background: var(--panel-2); color: var(--text); font-size: 0.86rem; font-weight: 700; text-transform: uppercase; display: grid; place-items: center; user-select: none;" style-active="transform: scale(0.92);">v</button>
+        <button style="flex: 1; max-width: 44px; height: var(--key-h); border-radius: 9px; border: 1px solid var(--border); background: var(--panel-2); color: var(--text); font-size: 0.86rem; font-weight: 700; text-transform: uppercase; display: grid; place-items: center; user-select: none;" style-active="transform: scale(0.92);">b</button>
+        <button style="flex: 1; max-width: 44px; height: var(--key-h); border-radius: 9px; border: 1px solid transparent; background: var(--gray); color: #fff; opacity: 0.6; font-size: 0.86rem; font-weight: 700; text-transform: uppercase; display: grid; place-items: center; user-select: none;" style-active="transform: scale(0.92);">n</button>
+        <button style="flex: 1; max-width: 44px; height: var(--key-h); border-radius: 9px; border: 1px solid var(--border); background: var(--panel-2); color: var(--text); font-size: 0.86rem; font-weight: 700; text-transform: uppercase; display: grid; place-items: center; user-select: none;" style-active="transform: scale(0.92);">m</button>
+        <button aria-label="delete letter" style="flex: 1.6; max-width: 72px; height: var(--key-h); border-radius: 9px; border: 1px solid var(--border); background: var(--panel-2); color: var(--text); font-size: 0.68rem; font-weight: 700; text-transform: uppercase; display: grid; place-items: center; user-select: none;" style-active="transform: scale(0.92);">⌫</button>
+      </div>
+    </div>
+  </main>
+
+  <footer style="padding: 10px 4px 16px; color: var(--muted); font-size: 0.66rem; text-align: center; line-height: 1.6;">
+    <a href="https://sepolia.etherscan.io/address/0x5246befd9bc31b44d90e274c758cce3d24a0490f" target="_blank" rel="noopener" style="color: var(--muted);">contract ↗</a>
+    <span style="margin: 0 6px;">·</span>
+    <span>the word is <strong>mathematically un-leakable</strong> while the round is live</span>
+  </footer>
+</div>
+
+<sc-if value="{{ helpOpen }}" hint-placeholder-val="{{ false }}">
+  <div onClick="{{ backdropClose }}" style="position: fixed; inset: 0; background: rgba(5, 5, 15, 0.72); backdrop-filter: blur(4px); display: grid; place-items: center; z-index: 50; animation: fadeIn 0.2s ease; padding: 16px;">
+    <div role="dialog" aria-modal="true" style="background: var(--panel); border: 1px solid var(--accent); border-radius: 18px; box-shadow: 0 0 60px rgba(139, 92, 246, 0.35); padding: 26px 24px; max-width: 420px; width: 100%; text-align: center; animation: modalIn 0.3s cubic-bezier(0.22, 1.3, 0.36, 1); max-height: 86dvh; overflow-y: auto;">
+      <h2 style="margin: 0 0 6px; font-size: 1.25rem; letter-spacing: 0.02em;">How to play</h2>
+      <p style="color: var(--muted); font-size: 0.8rem; margin: 0 0 16px; line-height: 1.5; text-align: left;">
+        Guess the 5-letter word in 6 tries. 🟩 right letter, right spot ·
+        🟨 letter is in the word · ⬜ not in the word.<br><br>
+        The twist: the secret lives <strong>encrypted inside a TEE</strong>
+        (iExec Nox). The blockchain, the server, even the developers cannot read
+        it — your hints are computed <em>on ciphertext</em> and only the colors
+        are decrypted. First correct guess wins the ETH pot, verified on-chain
+        with a KMS proof. When the round ends, the word is unsealed so anyone
+        can audit that every hint was honest.<br><br>
+        <strong>Symbols</strong> (color-blind safe): ✓ correct · ≈ present · × absent.
+      </p>
+      <button onClick="{{ closeHelp }}" style="width: 100%; height: 48px; border-radius: 12px; border: none; background: var(--accent); color: #fff; font-weight: 800; font-size: 0.95rem; letter-spacing: 0.03em; box-shadow: var(--accent-glow); transition: transform 0.08s ease, filter 0.15s ease;" style-hover="filter: brightness(1.12); transform: translateY(-1px);">Got it</button>
+    </div>
+  </div>
+</sc-if>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { theme: "dark", sound: true, helpOpen: false, countdown: "1h 12m" };
+  componentDidMount() {
+    document.body.classList.toggle("cw-light", this.state.theme === "light");
+    this._deadline = Date.now() + (60 * 60 + 12 * 60) * 1000;
+    this._timer = setInterval(() => {
+      const s = Math.max(0, Math.floor((this._deadline - Date.now()) / 1000));
+      const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), sec = s % 60;
+      const text = h > 0 ? `${h}h ${String(m).padStart(2, "0")}m` : `${m}:${String(sec).padStart(2, "0")}`;
+      if (text !== this.state.countdown) this.setState({ countdown: text });
+    }, 1000);
+  }
+  componentWillUnmount() { clearInterval(this._timer); }
+  renderVals() {
+    return {
+      countdown: this.state.countdown,
+      helpOpen: this.state.helpOpen,
+      soundIcon: this.state.sound ? "🔊" : "🔇",
+      themeIcon: this.state.theme === "dark" ? "🌙" : "☀️",
+      toggleSound: () => this.setState(s => ({ sound: !s.sound })),
+      toggleTheme: () => this.setState(s => {
+        const theme = s.theme === "dark" ? "light" : "dark";
+        document.body.classList.toggle("cw-light", theme === "light");
+        return { theme };
+      }),
+      openHelp: () => this.setState({ helpOpen: true }),
+      closeHelp: () => this.setState({ helpOpen: false }),
+      backdropClose: (e) => { if (e.target === e.currentTarget) this.setState({ helpOpen: false }); },
+    };
+  }
+}
+</script>
+</body>
+</html>
