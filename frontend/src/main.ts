@@ -12,6 +12,7 @@ import { getState, subscribe, update } from "./state.ts";
 import { events } from "./ui/events.ts";
 import { launchConfetti } from "./ui/confetti.ts";
 import {
+  fillRevealedWord,
   showHelpModal,
   showNotDeployedModal,
   showPaidModal,
@@ -137,6 +138,9 @@ events.on("revealed", ({ word }) => {
   const phase = getState().phase;
   if (phase === "solved-by-other" || phase === "expired") {
     showRoundOverModal(phase, word);
+  } else {
+    // Winner's "Pot Claimed" modal opened before the reveal resolved — fill it now.
+    fillRevealedWord(word);
   }
   renderBanner(getState());
 });

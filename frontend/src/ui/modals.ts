@@ -38,6 +38,21 @@ function revealedWordHtml(word: string | null): string {
   return stampWordHtml(word);
 }
 
+/**
+ * A revealed-word placeholder that can be filled in later. Modals opened before
+ * the KMS reveal resolves (e.g. the winner's "Pot Claimed") render the "Unsealing…"
+ * text, then `fillRevealedWord` swaps in the stamped word once it lands.
+ */
+function revealSlotHtml(word: string | null): string {
+  return `<div class="reveal-slot">${revealedWordHtml(word)}</div>`;
+}
+
+/** Fill any open modal's reveal slot with the stamped word (no-op if none open). */
+export function fillRevealedWord(word: string): void {
+  const slot = document.querySelector<HTMLElement>(".modal .reveal-slot");
+  if (slot) slot.innerHTML = stampWordHtml(word);
+}
+
 export function showWinModal(): void {
   const s = getState();
   const potEth = s.round ? `${Number(s.round.pot) / 1e18}` : "";
@@ -77,7 +92,7 @@ export function showPaidModal(txHash: string): void {
     <div class="modal-kicker">✦&nbsp;&nbsp;Round № ${roundId} · Claimed&nbsp;&nbsp;✦</div>
     <h2>Pot Claimed</h2>
     <p class="modal-sub">Proof verified on-chain. The word is now unsealed for everyone to audit.</p>
-    ${revealedWordHtml(s.round?.revealedWord ?? null)}
+    ${revealSlotHtml(s.round?.revealedWord ?? null)}
     <button class="btn-primary" id="modal-share">Share on 𝕏</button>
     <button class="btn-secondary" id="modal-close">Close</button>
     <a class="tx-link" href="${ETHERSCAN}/tx/${txHash}" target="_blank" rel="noopener">payout tx ↗</a>
@@ -99,7 +114,7 @@ export function showRoundOverModal(kind: "solved-by-other" | "expired", word: st
     <div class="modal-kicker">✦&nbsp;&nbsp;Round № ${roundId} · Settled&nbsp;&nbsp;✦</div>
     <h2>The Vault Is Open</h2>
     <p class="modal-sub">${sub}</p>
-    ${revealedWordHtml(word)}
+    ${revealSlotHtml(word)}
     <button class="btn-primary compact" id="modal-close2">Wait for the next round</button>
     <a class="tx-link" href="${ETHERSCAN}/address/${CONTRACT_ADDRESS}" target="_blank" rel="noopener">audit on etherscan ↗</a>
   `).querySelector("#modal-close2")!.addEventListener("click", close);
