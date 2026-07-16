@@ -14,8 +14,11 @@ All commands run from the repo root unless noted. **Node 22+ required** (scripts
 |------|---------|
 | Typecheck (Node side) | `npm run typecheck` |
 | Compile contract | `npm run compile` |
-| Full integration test suite | `npm test` |
-| Run one test file | `npx hardhat test test/integration/gas-probe.test.ts` |
+| Node unit tests (fast, no Docker) | `npm run test:unit` |
+| Integration tests (real Nox stack) | `npm test` |
+| Run one integration file | `npx hardhat test test/integration/gas-probe.test.ts` |
+| Frontend unit/component tests | `cd frontend && npm test` |
+| Frontend e2e (Playwright) | `cd frontend && npm run test:e2e` |
 | Deploy to Sepolia | `npm run deploy:sepolia` |
 | Regenerate frontend ABI | `npm run export-abi` |
 | Live-testnet end-to-end probe | `npm run sanity:sepolia` |
@@ -24,10 +27,14 @@ All commands run from the repo root unless noted. **Node 22+ required** (scripts
 | Frontend dev server | `cd frontend && npm run dev` |
 | Frontend typecheck + build | `cd frontend && npm run build` |
 
-There is **no linter** and no unit tests — `npm test` is Hardhat 3 driving the `node:test` runner against integration tests only.
+There is **no linter**. Tests come in three tiers:
 
-### About `npm test`
-`npm test` boots the **entire real Nox off-chain stack in Docker** (KMS, handle gateway, TDX runner, NATS, MinIO) via `@iexec-nox/nox-hardhat-plugin` — no mocks. First run pulls large images (slow); a single guess executes ~95 TEE ops sequentially, so the suite takes several minutes. On failure, stack logs land in `offchain-services.log`. Requires Docker running. `test/integration/gas-probe.test.ts` is separate from the main `cryptowordle.test.ts` suite and only measures per-function gas.
+- **Unit** — `npm run test:unit` (root, `node --test test/unit/*.test.ts`): pure logic, no Docker/network. `frontend/` has its own unit + component layer via Vitest + jsdom (`cd frontend && npm test`) covering the store, the idempotent DOM renderer and the certificate modals.
+- **Integration** — `npm test` (Hardhat 3 + real Nox stack, see below).
+- **E2E** — `cd frontend && npm run test:e2e` (Playwright): boots the built bundle and smoke-tests the UI shell (render, help modal, theme toggle) — no wallet/chain, so the on-chain guess/claim flow stays covered by integration. One-time: `npx playwright install chromium`.
+
+### About `npm test` (integration)
+`npm test` boots the **entire real Nox off-chain stack in Docker** (KMS, handle gateway, TDX runner, NATS, MinIO) via `@iexec-nox/nox-hardhat-plugin` — no mocks. First run pulls large images (slow); a single guess executes ~95 TEE ops sequentially, so the suite takes several minutes. On failure, stack logs land in `offchain-services.log`. Requires Docker running. `test/integration/gas-probe.test.ts` is separate from the main `cryptowordle.test.ts` suite and only measures per-function gas. Bare `hardhat test` also discovers `test/unit/` — that's harmless (those tests need no Docker), but `npm run test:unit` is the fast Docker-free path.
 
 ### Environment (`.env`, see `.env.example`)
 `SEPOLIA_RPC_URL` and `DEPLOYER_PRIVATE_KEY` (fresh funded dev key) are required for any deploy/service/sanity command. `ROUND_POT_ETH` / `ROUND_DURATION_SECONDS` configure the round generator. `CRYPTOWORDLE_ADDRESS` overrides the deployed address from `deployments/sepolia.json`.

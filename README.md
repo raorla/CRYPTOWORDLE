@@ -83,6 +83,14 @@ npm test          # 10 integration tests; first run pulls Docker images (slow)
 
 A single guess emits ~95 TEE ops executed sequentially by the local runner, so the suite takes several minutes. On failure, stack logs land in `offchain-services.log`.
 
+Faster tiers that need neither Docker nor a chain:
+
+```bash
+npm run test:unit                 # word-list integrity + letter codec (node --test)
+cd frontend && npm test           # store / DOM renderer / modals (Vitest + jsdom)
+cd frontend && npm run test:e2e   # UI-shell smoke (Playwright; one-time: npx playwright install chromium)
+```
+
 ### 2. Deploy to ETH Sepolia
 
 ```bash

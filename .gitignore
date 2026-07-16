@@ -15,6 +15,12 @@ frontend/dist
 # Nox plugin offchain stack logs
 /offchain-services.log
 
+# Playwright e2e artifacts
+test-results/
+playwright-report/
+blob-report/
+.playwright/
+
 # Secrets — never commit keys
 .env
 .env.local

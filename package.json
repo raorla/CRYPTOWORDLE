@@ -9,6 +9,8 @@
     "typecheck": "tsc --noEmit",
     "compile": "hardhat compile",
     "test": "hardhat test",
+    "test:unit": "node --test test/unit/*.test.ts",
+    "test:integration": "hardhat test",
     "deploy:sepolia": "node scripts/deploy.ts",
     "export-abi": "node scripts/export-abi.ts",
     "sanity:sepolia": "node scripts/sanity-check.ts",

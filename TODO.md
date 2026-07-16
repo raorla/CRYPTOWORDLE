@@ -13,8 +13,14 @@ _Last updated: 2026-07-16._
 
 ## Should-have (visible in the demo)
 
-- [ ] **Paid modal should show the revealed word.** After a self-claim, the "Pot Claimed" modal opens before the reveal resolves and never refreshes, so it can stay on *"Unsealing the word from the TEE…"*. The `"revealed"` handler in `frontend/src/main.ts` only refreshes the settled modal for `solved-by-other`/`expired`, not `paid`. Re-render the paid modal (or fill its word) when the reveal lands. The seal panel behind it already unseals, so the demo works either way — but this is the cleaner shot.
+- [x] **Paid modal shows the revealed word.** The "Pot Claimed" modal now renders a fillable `.reveal-slot`; the `"revealed"` handler in `frontend/src/main.ts` calls `fillRevealedWord()` so the word appears once the KMS reveal lands (covered by `frontend/src/ui/modals.test.ts`).
 - [ ] **(Optional, great on camera) Surface the 5 secret handle hashes** on the seal panel (hover/click) so "five encrypted handles" is tangible in the hook. No such tooltip exists today; the original script assumed one.
+
+## Tests (now in place)
+
+- [x] **Unit** — `npm run test:unit` (word-list integrity + letter codec) and `cd frontend && npm test` (Vitest + jsdom: store, DOM renderer, certificate modals).
+- [x] **Integration** — `npm test` (unchanged: 10 end-to-end tests against the real Nox Docker stack).
+- [x] **E2E** — `cd frontend && npm run test:e2e` (Playwright smoke of the UI shell). Future: a wallet/chain-mocked e2e to drive the full guess→win→claim flow in-browser.
 
 ## Nice-to-have
 
