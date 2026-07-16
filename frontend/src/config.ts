@@ -7,6 +7,8 @@ export const DEPLOY_BLOCK = BigInt(deployment.deployBlock);
 export const CHAIN_ID = 11155111;
 
 export const ETHERSCAN = "https://sepolia.etherscan.io";
+/** Source-verified explorer (no API key needed): balance + Read Contract for the pot. */
+export const BLOCKSCOUT = "https://eth-sepolia.blockscout.com";
 
 /**
  * Explicit gas budgets — wallets cannot estimate Nox precompile calls

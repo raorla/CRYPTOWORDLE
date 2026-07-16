@@ -1,6 +1,6 @@
 import "./style.css";
 import { connectWallet, disconnectWallet, hasWallet } from "./chain.ts";
-import { CONTRACT_ADDRESS, ETHERSCAN, isDeployed } from "./config.ts";
+import { BLOCKSCOUT, CONTRACT_ADDRESS, ETHERSCAN, isDeployed } from "./config.ts";
 import {
   backspace,
   loadLatestRound,
@@ -53,6 +53,10 @@ const ledgerLink = document.getElementById("contract-link") as HTMLAnchorElement
 ledgerLink.href = contractHref;
 ledgerLink.textContent = `${CONTRACT_ADDRESS.slice(0, 6)}…${CONTRACT_ADDRESS.slice(-4)} ↗`;
 (document.getElementById("footer-contract-link") as HTMLAnchorElement).href = contractHref;
+// "Is the money really there?" — one click to the source-verified explorer
+// showing the contract's ETH balance and a Read Contract tab for getRound.
+(document.getElementById("pot-proof-link") as HTMLAnchorElement).href =
+  `${BLOCKSCOUT}/address/${CONTRACT_ADDRESS}`;
 
 soundBtn.addEventListener("click", () => {
   soundBtn.textContent = toggleSound() ? "♪" : "∅";

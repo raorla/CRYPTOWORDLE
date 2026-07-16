@@ -411,6 +411,22 @@ button {
   color: var(--muted);
 }
 
+/* Proof link: answers "is the money really there?" in one click. */
+.pot-proof {
+  display: inline-block;
+  margin-top: 8px;
+  font-size: 9.5px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--metal-deep);
+  border-bottom: 1px dotted var(--metal);
+  padding-bottom: 1px;
+}
+
+.pot-proof:hover {
+  color: var(--metal);
+}
+
 .data-row {
   display: flex;
   justify-content: space-between;
