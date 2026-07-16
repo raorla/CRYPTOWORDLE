@@ -46,14 +46,34 @@ export async function loadLatestRound(): Promise<void> {
   const isNewRound = currentRoundId !== null && roundId !== currentRoundId;
   if (isNewRound) {
     decrypted.clear();
-    update({ myRows: [], keyboard: {}, typed: "", statusNote: null });
+    // Reset the board AND the phase — otherwise a terminal phase from the
+    // previous round (won/paid/spectator/expired/solved-by-other) would leave
+    // canType() false and the player unable to guess in the new round.
+    update({
+      myRows: [],
+      keyboard: {},
+      typed: "",
+      statusNote: null,
+      phase: getState().account ? "idle" : "no-wallet",
+    });
     events.emit("new-round");
   }
   currentRoundId = roundId;
   await refreshRound();
 }
 
-async function refreshRound(): Promise<void> {
+// Serialized so the 12s poll and the submit/claim flows never interleave their
+// read+update passes (which race on myRows and phase). Each call runs strictly
+// after any in-flight one, so a submit-triggered refresh always re-reads fresh
+// state that includes the just-mined guess.
+let refreshChain: Promise<void> = Promise.resolve();
+
+function refreshRound(): Promise<void> {
+  refreshChain = refreshChain.then(doRefresh, doRefresh);
+  return refreshChain;
+}
+
+async function doRefresh(): Promise<void> {
   if (currentRoundId === null) return;
   const state = getState();
   const raw = await readRound(currentRoundId);
@@ -113,6 +133,10 @@ async function refreshRound(): Promise<void> {
       phase: "spectator",
       statusNote: "Out of guesses — the word stays sealed while others play.",
     });
+  } else if (state.account && getState().phase === "boot") {
+    // First round loaded after connecting while none existed yet: leave the
+    // "preparing the vault" boot phase so the player can actually type.
+    update({ phase: "idle", statusNote: null });
   }
 }
 
@@ -133,23 +157,37 @@ export function stopPolling(): void {
 // ---------------------------------------------------------------------------
 
 async function decryptRow(raw: GuessRaw, row: GuessRow): Promise<void> {
-  // All five in parallel; each tile flips as its color lands.
-  await Promise.all(
-    raw.colorHandles.map(async (handle, i) => {
-      const { value } = await publicDecryptWithRetry(handle as Hex);
-      row.colors[i] = Number(value) as Color;
-      events.emit("tile-color", { guessIndex: row.guessIndex, tile: i, color: row.colors[i]! });
-      update({}); // re-render
-    }),
-  );
-  absorbIntoKeyboard(row);
+  try {
+    // All five in parallel; each tile flips as its color lands.
+    await Promise.all(
+      raw.colorHandles.map(async (handle, i) => {
+        const { value } = await publicDecryptWithRetry(handle as Hex);
+        row.colors[i] = Number(value) as Color;
+        events.emit("tile-color", { guessIndex: row.guessIndex, tile: i, color: row.colors[i]! });
+        update({}); // re-render
+      }),
+    );
+    absorbIntoKeyboard(row);
 
-  const { value: win } = await publicDecryptWithRetry(raw.winHandle as Hex);
-  row.win = win === true;
-  update({});
-  if (row.win && getState().phase !== "paid" && getState().phase !== "claiming") {
-    update({ phase: "won", statusNote: "All green — the vault is yours. Claim the pot." });
-    events.emit("win", { guessIndex: row.guessIndex });
+    const { value: win } = await publicDecryptWithRetry(raw.winHandle as Hex);
+    row.win = win === true;
+    update({});
+    if (row.win && getState().phase !== "paid" && getState().phase !== "claiming") {
+      update({ phase: "won", statusNote: "All green — the vault is yours. Claim the pot." });
+      events.emit("win", { guessIndex: row.guessIndex });
+    }
+  } catch {
+    // The KMS never materialised these colours (rare, transient). Don't wedge:
+    // free the row so a later poll re-attempts, and release the input if the
+    // submit flow is still parked in the "decrypting" phase waiting on it.
+    decrypted.delete(`${currentRoundId}:${row.guessIndex}`);
+    if (getState().phase === "decrypting") {
+      update({
+        phase: "idle",
+        statusNote: null,
+        error: "Colours are taking a while to decrypt — they'll appear shortly.",
+      });
+    }
   }
 }
 
@@ -252,13 +290,20 @@ export async function claimPot(): Promise<void> {
 
     update({ phase: "paid", statusNote: "Pot paid out — revealing the word…" });
     events.emit("paid", { txHash: hash });
-    await refreshRound();
   } catch (error: any) {
     update({
       phase: "won",
-      statusNote: "Claim failed — try again.",
+      statusNote: "Claim failed — tap here to try again.",
       error: `${error?.shortMessage ?? error?.message ?? error}`.slice(0, 140),
     });
+    return;
+  }
+  // The claim already succeeded; a failure fetching the reveal must NOT be
+  // reported as a failed claim. The poll will retry the reveal.
+  try {
+    await refreshRound();
+  } catch {
+    /* reveal will surface on the next poll */
   }
 }
 
@@ -315,7 +360,7 @@ export function buildShareText(): string {
   const s = getState();
   const grid = s.myRows
     .map((row) =>
-      row.colors.map((c) => (c === 2 ? "🟩" : c === 1 ? "🟨" : "⬜")).join(""),
+      row.colors.map((c) => (c === 2 ? "🟩" : c === 1 ? "🟨" : c === 0 ? "⬜" : "⬛")).join(""),
     )
     .join("\n");
   const tries = s.myRows.some((r) => r.win) ? `${s.myRows.length}/6` : "X/6";

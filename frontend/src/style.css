@@ -67,6 +67,9 @@ body {
   margin: 0;
   padding: 0;
   height: 100%;
+  /* Clip the decorative guilloché rings that bleed past the edges — on html
+     too, so no sideways scroll appears on narrow screens. */
+  overflow-x: hidden;
 }
 
 body {
@@ -471,6 +474,9 @@ button {
 
 .status-line.is-won {
   color: var(--metal-deep);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 
 .status-line.is-settled {
@@ -1149,14 +1155,43 @@ button {
 
 /* ---------- responsive ---------- */
 
-@media (max-width: 400px) {
+@media (max-width: 480px) {
   .util-row {
-    padding: 12px 16px 0;
+    padding: 12px 14px 0;
+    gap: 10px;
+  }
+
+  /* Let the status label shrink and ellipsize; keep the actions intact so the
+     Connect button is never clipped off the right edge. */
+  .util-left {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 9px;
+    letter-spacing: 0.12em;
+  }
+
+  .util-actions {
+    flex: none;
+    gap: 6px;
+  }
+
+  .icon-btn {
+    width: 30px;
+    height: 30px;
+    font-size: 12px;
   }
 
   .connect-btn {
-    padding: 0 12px;
-    letter-spacing: 0.12em;
+    padding: 0 10px;
+    letter-spacing: 0.06em;
+    font-size: 10px;
+  }
+
+  .wordmark {
+    font-size: 27px;
+    letter-spacing: 0.08em;
   }
 
   .game-layout {

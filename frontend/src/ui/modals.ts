@@ -4,26 +4,63 @@ import { getState } from "../state.ts";
 
 const root = () => document.getElementById("modal-root")!;
 
+/** Element focused before the modal opened, so focus can be restored on close. */
+let lastFocused: HTMLElement | null = null;
+
 function open(html: string, frameGold = false): HTMLElement {
   close();
+  lastFocused = document.activeElement instanceof HTMLElement ? document.activeElement : null;
   const backdrop = document.createElement("div");
   backdrop.className = "modal-backdrop";
-  backdrop.innerHTML = `<div class="modal${frameGold ? " frame-gold" : ""}" role="dialog" aria-modal="true">${html}</div>`;
+  backdrop.innerHTML = `<div class="modal${frameGold ? " frame-gold" : ""}" role="dialog" aria-modal="true" tabindex="-1">${html}</div>`;
   backdrop.addEventListener("click", (e) => {
     if (e.target === backdrop) close();
   });
   root().appendChild(backdrop);
-  document.addEventListener("keydown", escClose);
+  document.addEventListener("keydown", onModalKeydown, true);
+  // Move focus into the dialog (primary action first) so keyboard and screen
+  // reader users land inside it, not on the page behind.
+  const focusables = modalFocusables(backdrop);
+  (focusables[0] ?? backdrop.querySelector<HTMLElement>(".modal"))?.focus();
   return backdrop;
 }
 
 export function close(): void {
+  const wasOpen = root().childElementCount > 0;
   root().innerHTML = "";
-  document.removeEventListener("keydown", escClose);
+  document.removeEventListener("keydown", onModalKeydown, true);
+  if (wasOpen && lastFocused) lastFocused.focus?.();
+  lastFocused = null;
 }
 
-function escClose(e: KeyboardEvent): void {
-  if (e.key === "Escape") close();
+function modalFocusables(scope: HTMLElement): HTMLElement[] {
+  return Array.from(
+    scope.querySelectorAll<HTMLElement>(
+      'button, a[href], input, [tabindex]:not([tabindex="-1"])',
+    ),
+  );
+}
+
+/** Escape to close, and trap Tab within the open dialog. */
+function onModalKeydown(e: KeyboardEvent): void {
+  if (e.key === "Escape") {
+    close();
+    return;
+  }
+  if (e.key !== "Tab") return;
+  const backdrop = root().querySelector<HTMLElement>(".modal-backdrop");
+  if (!backdrop) return;
+  const items = modalFocusables(backdrop);
+  if (items.length === 0) return;
+  const first = items[0];
+  const last = items[items.length - 1];
+  if (e.shiftKey && document.activeElement === first) {
+    e.preventDefault();
+    last.focus();
+  } else if (!e.shiftKey && document.activeElement === last) {
+    e.preventDefault();
+    first.focus();
+  }
 }
 
 /** The winning / revealed word as five green "stamped" certificate tiles. */

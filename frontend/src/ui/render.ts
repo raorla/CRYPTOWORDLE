@@ -152,7 +152,13 @@ export function renderKeyboard(state: AppState): void {
     if (k.length !== 1) return;
     btn.classList.remove("c0", "c1", "c2");
     const color = state.keyboard[k];
-    if (color !== undefined) btn.classList.add(`c${color}`);
+    if (color !== undefined) {
+      btn.classList.add(`c${color}`);
+      // Status is otherwise conveyed by colour alone — announce it too.
+      btn.setAttribute("aria-label", `letter ${k}: ${COLOR_NAMES[color]}`);
+    } else {
+      btn.setAttribute("aria-label", `letter ${k}`);
+    }
   });
 }
 

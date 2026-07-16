@@ -32,6 +32,22 @@ const POT_ETH = process.env.ROUND_POT_ETH ?? "0.01";
 const DURATION = BigInt(process.env.ROUND_DURATION_SECONDS ?? "86400");
 const CLAIM_GRACE = 15n * 60n; // matches CryptoWordle.CLAIM_GRACE_PERIOD
 
+// Fail fast on bad config rather than sending a doomed tx: parseEther throws on
+// junk pots, and the contract bounds duration to [10 min, 30 days].
+if (!/^\d+(\.\d+)?$/.test(POT_ETH) || Number(POT_ETH) <= 0) {
+  throw new Error(`ROUND_POT_ETH must be a positive decimal ETH amount, got "${POT_ETH}"`);
+}
+if (DURATION < 600n || DURATION > 30n * 24n * 3600n) {
+  throw new Error(
+    `ROUND_DURATION_SECONDS must be within [600, 2592000] (contract limits), got ${DURATION}`,
+  );
+}
+
+// Guards a single process from creating two rounds if a createRound receipt
+// times out but the tx later mines (a slow-but-successful send would otherwise
+// be retried on the next tick and double-fund a second round).
+let creating = false;
+
 const client = makeClient();
 const handleClient = await makeHandleClient(client);
 const { abi } = loadArtifact();
@@ -69,28 +85,37 @@ async function latestRoundId(): Promise<bigint | null> {
 }
 
 async function createRound(): Promise<void> {
-  console.log("Creating a new round…");
-  // The secret exists in plaintext ONLY inside this block.
-  {
-    const word = ANSWERS[randomInt(ANSWERS.length)];
-    const { handles, proofs } = await encryptWord(handleClient, word, deployment.address);
-    console.log("  word sealed 🔒 (5 encrypted handles ready — plaintext discarded)");
-
-    const hash = await client.writeContract({
-      ...contract,
-      functionName: "createRound",
-      args: [handles, proofs, DURATION],
-      value: parseEther(POT_ETH),
-      gas: GAS.createRound,
-      account: client.account!,
-      chain: client.chain,
-    });
-    console.log(`  tx: ${hash}`);
-    const receipt = await client.waitForTransactionReceipt({ hash });
-    if (receipt.status !== "success") throw new Error("createRound tx reverted");
+  if (creating) {
+    console.log("  (createRound already in flight — skipping duplicate)");
+    return;
   }
-  const roundId = await latestRoundId();
-  console.log(`  round #${roundId} is live ✔ (pot ${POT_ETH} ETH, ${DURATION}s)`);
+  creating = true;
+  try {
+    console.log("Creating a new round…");
+    // The secret exists in plaintext ONLY inside this block.
+    {
+      const word = ANSWERS[randomInt(ANSWERS.length)];
+      const { handles, proofs } = await encryptWord(handleClient, word, deployment.address);
+      console.log("  word sealed 🔒 (5 encrypted handles ready — plaintext discarded)");
+
+      const hash = await client.writeContract({
+        ...contract,
+        functionName: "createRound",
+        args: [handles, proofs, DURATION],
+        value: parseEther(POT_ETH),
+        gas: GAS.createRound,
+        account: client.account!,
+        chain: client.chain,
+      });
+      console.log(`  tx: ${hash}`);
+      const receipt = await client.waitForTransactionReceipt({ hash });
+      if (receipt.status !== "success") throw new Error("createRound tx reverted");
+    }
+    const roundId = await latestRoundId();
+    console.log(`  round #${roundId} is live ✔ (pot ${POT_ETH} ETH, ${DURATION}s)`);
+  } finally {
+    creating = false;
+  }
 }
 
 /**
@@ -105,7 +130,9 @@ async function crankWinningClaims(roundId: bigint): Promise<boolean> {
     args: [roundId],
   })) as any[];
 
-  for (let i = guesses.length - 1; i >= 0; i--) {
+  // Oldest-first: if several correct guesses landed before anyone cranked,
+  // the EARLIEST guesser is the fair winner.
+  for (let i = 0; i < guesses.length; i++) {
     const winHandle = guesses[i].winHandle as Hex;
     let win: { value: unknown; decryptionProof: Hex };
     try {

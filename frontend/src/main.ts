@@ -62,6 +62,22 @@ themeBtn.addEventListener("click", () => {
 });
 helpBtn.addEventListener("click", showHelpModal);
 
+// The win/claim flow's only trigger is the certificate modal, shown once. If a
+// claim fails (or the modal is dismissed), the phase returns to "won" — make
+// the status line a persistent way back into the claim so the win is never a
+// dead end.
+const statusLine = document.getElementById("status-line")!;
+statusLine.addEventListener("click", () => {
+  if (getState().phase === "won") showWinModal();
+});
+
+// React to wallet account / network changes: the handle client is bound to one
+// account+chain, so the simplest correct reset is a reload.
+if (hasWallet() && window.ethereum?.on) {
+  window.ethereum.on("accountsChanged", () => window.location.reload());
+  window.ethereum.on("chainChanged", () => window.location.reload());
+}
+
 connectBtn.addEventListener("click", async () => {
   if (getState().account) return;
   try {
@@ -92,6 +108,16 @@ function handleKey(key: string): void {
 document.addEventListener("keydown", (e) => {
   if (e.metaKey || e.ctrlKey || e.altKey) return;
   if (document.querySelector(".modal-backdrop")) return; // modal open
+  // If an on-screen key has focus, let its own click handle Enter/Space —
+  // otherwise the guess would be submitted twice (button click + this handler).
+  const active = document.activeElement;
+  if (
+    active instanceof HTMLElement &&
+    active.classList.contains("key") &&
+    (e.key === "Enter" || e.key === " ")
+  ) {
+    return;
+  }
   handleKey(e.key.length === 1 ? e.key.toLowerCase() : e.key);
 });
 
