@@ -177,6 +177,19 @@ export function renderBanner(state: AppState): void {
   guesses.textContent = state.round ? String(state.round.guessCount) : "0";
   yours.innerHTML = `${state.myRows.length} <span class="of">of ${MAX_GUESSES}</span>`;
 
+  // The escrowed house bankroll — proof future pots are already funded.
+  // Optional row: absent from partial DOMs and hidden on pre-treasury deploys.
+  const treasuryRow = document.getElementById("treasury-row");
+  if (treasuryRow) {
+    if (state.treasuryWei !== null) {
+      treasuryRow.hidden = false;
+      document.getElementById("treasury-value")!.textContent =
+        `${trimEth(state.treasuryWei)} ETH`;
+    } else {
+      treasuryRow.hidden = true;
+    }
+  }
+
   const ring = document.getElementById("seal-ring")!;
   const inner = document.getElementById("seal-inner")!;
   const caption = document.getElementById("seal-caption")!;

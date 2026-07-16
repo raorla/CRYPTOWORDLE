@@ -47,23 +47,12 @@ describe("gas probe", () => {
     rcpt = await publicClient.waitForTransactionReceipt({ hash: tx });
     report.claim = rcpt.gasUsed;
 
-    // Second round for expiry measurement.
-    const handles2: Hex[] = [];
-    const proofs2: Hex[] = [];
-    for (const letter of l("gnome")) {
-      const enc = await nox.encryptInput(BigInt(letter), "uint256", game.address);
-      handles2.push(enc.handle);
-      proofs2.push(enc.handleProof);
-    }
-    tx = await game.write.createRound([handles2, proofs2, 600n], {
-      value: parseEther("0.1"),
-    });
-    await publicClient.waitForTransactionReceipt({ hash: tx });
-    await publicClient.request({ method: "evm_increaseTime", params: [600 + 15 * 60 + 10] });
-    await publicClient.request({ method: "evm_mine", params: [] });
-    tx = await game.write.revealExpired([1n]);
-    rcpt = await publicClient.waitForTransactionReceipt({ hash: tx });
-    report.revealExpired = rcpt.gasUsed;
+    // NOTE: revealExpired is deliberately NOT measured here. It needs an
+    // evm_increaseTime warp of deadline+grace (~25 min), and NoxCompute input
+    // proofs expire 1 hour after their gateway timestamp — the whole test run
+    // shares one chain, so the suite has a TOTAL warp budget of < 60 min,
+    // already spent by the expiry tests in cryptowordle.test.ts and
+    // treasury.test.ts. Last standalone measurement: revealExpired = 517,516.
 
     console.log("\n=== GAS REPORT ===");
     for (const [fn, gas] of Object.entries(report)) {

@@ -101,14 +101,15 @@ npm run export-abi         # regenerates shared/abi.ts for the frontend
 npm run sanity:sepolia     # optional: full create→guess→decrypt→claim→reveal probe on the real testnet
 ```
 
-### 3. Run the round generator
+### 3. Fund the treasury & run the round generator
 
 ```bash
-npm run round:create   # create one round (if none open) and exit
-npm run round:daemon   # keep a round always open, crank claims for winners, expire stale rounds
+npm run treasury:fund -- 0.5   # escrow a house bankroll in the contract (auditable on-chain)
+npm run round:create           # create one round (if none open) and exit
+npm run round:daemon           # keep a round always open, crank claims for winners, expire stale rounds
 ```
 
-Pot size and duration are set via `ROUND_POT_ETH` and `ROUND_DURATION_SECONDS` in `.env`.
+The generator draws each pot from the on-chain treasury when it can (falling back to the wallet), so one deposit funds many rounds and expired pots flow back automatically. Pot size and duration are set via `ROUND_POT_ETH` and `ROUND_DURATION_SECONDS` in `.env`; `BANKROLL_FLOOR_ETH` stops wallet-funded rounds before the balance drains.
 
 ### 4. Run the frontend
 
@@ -145,13 +146,13 @@ Wallets and RPCs cannot estimate gas for transactions that touch the Nox precomp
 
 | Contract | Address |
 |----------|---------|
-| CryptoWordle | [`0x5246befd9bc31b44d90e274c758cce3d24a0490f`](https://sepolia.etherscan.io/address/0x5246befd9bc31b44d90e274c758cce3d24a0490f) (deploy block 11285717) |
+| CryptoWordle | [`0xaa6f76b4dc7d2df17ff73c7162523f0985289fc9`](https://sepolia.etherscan.io/address/0xaa6f76b4dc7d2df17ff73c7162523f0985289fc9) (deploy block 11287175) |
 | NoxCompute (iExec, chainId 11155111) | `0x24Ef36Ec5b626D7DCD09a98F3083c2758F0F77bF` |
 | Nox handle gateway | `https://gateway-testnets.noxprotocol.dev` |
 
-**The pot is escrowed by the contract itself** — no server ever holds funds. Check the live balance and call `getRound` yourself on the source-verified explorers: [Blockscout](https://eth-sepolia.blockscout.com/address/0x5246befd9bc31b44d90e274c758cce3d24a0490f#code) (balance + Read Contract) · [Sourcify](https://sourcify.dev/server/repo-ui/11155111/0x5246befd9bc31b44d90e274c758cce3d24a0490f) (full source match). ETH only leaves through `claim` (to the winning guesser, KMS-proof-verified) or `revealExpired` (refund to the round creator).
+**Every wei is escrowed by the contract itself** — no server ever holds funds. The **on-chain treasury** (`treasury()`, funded via `fundTreasury()` — [0.5 ETH deposit tx](https://sepolia.etherscan.io/tx/0x663ba1524a5a314308a7dfec52feff9b1763f5b22da696a39f81836dc996309b)) is the house bankroll: the round generator draws each pot from it (`createRoundFromTreasury`, treasurer-only so nobody can open rounds with words they chose), expired pots flow back into it, and the invariant `balance == treasury + Σ open pots` is pinned by the test suite. Check it all yourself on the source-verified explorers: [Blockscout](https://eth-sepolia.blockscout.com/address/0xaa6f76b4dc7d2df17ff73c7162523f0985289fc9#code) (balance + Read Contract) · [Sourcify](https://sourcify.dev/server/repo-ui/11155111/0xaa6f76b4dc7d2df17ff73c7162523f0985289fc9) (full source match). ETH only leaves through `claim` (to the winning guesser, KMS-proof-verified), `revealExpired` (back to the treasury or the round's funder), or `withdrawTreasury` (treasurer, uncommitted bankroll only — open pots are untouchable).
 
-Verified live on 2026-07-16 by [`scripts/sanity-check.ts`](scripts/sanity-check.ts): [round created](https://sepolia.etherscan.io/tx/0x7a39c52f7c90f5a8f68e5a426d8b968de3e0b1e72475eb21757a921ceff49d9b) → guess `porch` vs the sealed word → colors decrypted 🟨🟨🟨⬜⬜ → winning guess → [claim with on-chain KMS proof, pot paid](https://sepolia.etherscan.io/tx/0x28fdc0c3a4689c43a3f071946ffa502a09eb1f3afdb09bc4c349295ca4d2cd03) → revealed word decrypts to `vapor`. (`npm run deploy:sepolia` rewrites `deployments/sepolia.json`, the source of truth for the frontend and services.)
+An earlier deployment ([`0x5246befd…490f`](https://sepolia.etherscan.io/address/0x5246befd9bc31b44d90e274c758cce3d24a0490f), pre-treasury) hosted the first live-verified loop on 2026-07-16: [round created](https://sepolia.etherscan.io/tx/0x7a39c52f7c90f5a8f68e5a426d8b968de3e0b1e72475eb21757a921ceff49d9b) → guess `porch` → colors decrypted 🟨🟨🟨⬜⬜ → winning guess → [claim with on-chain KMS proof, pot paid](https://sepolia.etherscan.io/tx/0x28fdc0c3a4689c43a3f071946ffa502a09eb1f3afdb09bc4c349295ca4d2cd03) → revealed word decrypts to `vapor`. (`npm run deploy:sepolia` rewrites `deployments/sepolia.json`, the source of truth for the frontend and services.)
 
 ---
 

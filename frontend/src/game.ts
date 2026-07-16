@@ -4,6 +4,7 @@ import {
   readGuesses,
   readRound,
   readRoundCount,
+  readTreasury,
   sendClaim,
   sendGuess,
   waitForTx,
@@ -76,7 +77,11 @@ function refreshRound(): Promise<void> {
 async function doRefresh(): Promise<void> {
   if (currentRoundId === null) return;
   const state = getState();
-  const raw = await readRound(currentRoundId);
+  const [raw, treasuryWei] = await Promise.all([
+    readRound(currentRoundId),
+    readTreasury(),
+  ]);
+  update({ treasuryWei });
 
   const round: RoundView = {
     id: currentRoundId,

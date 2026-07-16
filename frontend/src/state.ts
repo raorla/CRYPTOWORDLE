@@ -38,6 +38,8 @@ export interface RoundView {
 export interface AppState {
   phase: Phase;
   account: `0x${string}` | null;
+  /** On-chain house bankroll in wei; null when unknown/unsupported. */
+  treasuryWei: bigint | null;
   round: RoundView | null;
   myRows: GuessRow[]; // this player's guesses in the current round
   othersCount: number; // guesses by other players
@@ -52,6 +54,7 @@ type Listener = (state: AppState) => void;
 const state: AppState = {
   phase: "boot",
   account: null,
+  treasuryWei: null,
   round: null,
   myRows: [],
   othersCount: 0,

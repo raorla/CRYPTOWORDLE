@@ -14,6 +14,7 @@
     "deploy:sepolia": "node scripts/deploy.ts",
     "export-abi": "node scripts/export-abi.ts",
     "sanity:sepolia": "node scripts/sanity-check.ts",
+    "treasury:fund": "node scripts/fund-treasury.ts",
     "round:create": "node service/roundGenerator.ts --once",
     "round:daemon": "node service/roundGenerator.ts"
   },

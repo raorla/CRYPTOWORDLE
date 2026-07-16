@@ -105,6 +105,18 @@ export async function readRoundCount(): Promise<bigint> {
   })) as bigint;
 }
 
+/** The on-chain house bankroll (uncommitted ETH escrowed for future pots). */
+export async function readTreasury(): Promise<bigint | null> {
+  try {
+    return (await publicClient.readContract({
+      ...contract,
+      functionName: "treasury",
+    })) as bigint;
+  } catch {
+    return null; // pre-treasury deployment — hide the row rather than error
+  }
+}
+
 export async function readRound(roundId: bigint): Promise<RoundRaw> {
   const [creator, pot, deadline, status, winner, guessCount, revealedLetterHandles] =
     (await publicClient.readContract({

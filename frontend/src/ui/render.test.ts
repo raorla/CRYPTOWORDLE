@@ -13,6 +13,7 @@ import {
 const base: AppState = {
   phase: "idle",
   account: null,
+  treasuryWei: null,
   round: null,
   myRows: [],
   othersCount: 0,

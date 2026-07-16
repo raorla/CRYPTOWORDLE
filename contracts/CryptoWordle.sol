@@ -77,6 +77,9 @@ contract CryptoWordle is ReentrancyGuard {
         uint96 pot;
         uint64 deadline;
         Status status;
+        /// @notice True when the pot was drawn from the on-chain treasury —
+        /// an expired round then refunds the treasury, not the creator.
+        bool fromTreasury;
         address winner;
         uint32 guessCount;
         /// @notice Post-round only: publicly-decryptable handles of the secret
@@ -92,6 +95,22 @@ contract CryptoWordle is ReentrancyGuard {
     mapping(uint256 roundId => Round) private _rounds;
     mapping(uint256 roundId => Guessed_[]) private _guesses;
     mapping(uint256 roundId => mapping(address player => uint256)) public guessCountOf;
+
+    /// @notice The on-chain house bankroll: ETH escrowed in this contract but
+    /// not yet committed to an open round. Anyone can audit it; it only ever
+    /// moves INTO round pots (or back out via the treasurer, see
+    /// `withdrawTreasury`). Invariant: `address(this).balance == treasury +
+    /// Σ pot of Open rounds`.
+    uint256 public treasury;
+
+    /// @notice The round-generator wallet. It may open treasury-funded rounds
+    /// and withdraw UNCOMMITTED treasury — it can never touch an open round's
+    /// pot, so the player-facing guarantees stay fully trustless.
+    address public immutable treasurer;
+
+    constructor() {
+        treasurer = msg.sender;
+    }
 
     // ---------------------------------------------------------------------
     // Events
@@ -130,6 +149,12 @@ contract CryptoWordle is ReentrancyGuard {
     /// verify the answer matched every hint that was handed out.
     event SecretRevealed(uint256 indexed roundId, bytes32[5] letterHandles);
 
+    /// @notice ETH entered the house treasury (deposit or expired-round refund).
+    event TreasuryFunded(address indexed from, uint256 amount, uint256 newTreasury);
+
+    /// @notice Uncommitted treasury withdrawn by the treasurer.
+    event TreasuryWithdrawn(address indexed to, uint256 amount, uint256 newTreasury);
+
     // ---------------------------------------------------------------------
     // Errors
     // ---------------------------------------------------------------------
@@ -146,6 +171,9 @@ contract CryptoWordle is ReentrancyGuard {
     error GuessDoesNotExist(uint256 roundId, uint256 guessIndex);
     error NotAWinningGuess(uint256 roundId, uint256 guessIndex);
     error PotTransferFailed(address to);
+    error NotTreasurer(address caller);
+    error InsufficientTreasury(uint256 requested, uint256 available);
+    error PotTooLarge(uint256 pot);
 
     // ---------------------------------------------------------------------
     // Round creation
@@ -173,6 +201,35 @@ contract CryptoWordle is ReentrancyGuard {
         uint64 durationSeconds
     ) external payable returns (uint256 roundId) {
         require(msg.value > 0, EmptyPot());
+        return _openRound(letterHandles, proofs, durationSeconds, msg.value, false);
+    }
+
+    /// @notice Opens a round whose pot is drawn from the on-chain treasury
+    /// instead of `msg.value`. Treasurer-only: if this were permissionless,
+    /// anyone could open treasury-funded rounds with a word THEY chose and
+    /// guess it — draining the bankroll. The treasurer already holds the only
+    /// trusted role (it picks and encrypts the words).
+    function createRoundFromTreasury(
+        externalEuint256[5] calldata letterHandles,
+        bytes[5] calldata proofs,
+        uint64 durationSeconds,
+        uint256 pot
+    ) external returns (uint256 roundId) {
+        require(msg.sender == treasurer, NotTreasurer(msg.sender));
+        require(pot > 0, EmptyPot());
+        require(pot <= treasury, InsufficientTreasury(pot, treasury));
+        treasury -= pot;
+        return _openRound(letterHandles, proofs, durationSeconds, pot, true);
+    }
+
+    function _openRound(
+        externalEuint256[5] calldata letterHandles,
+        bytes[5] calldata proofs,
+        uint64 durationSeconds,
+        uint256 pot,
+        bool fromTreasury
+    ) private returns (uint256 roundId) {
+        require(pot <= type(uint96).max, PotTooLarge(pot));
         require(
             durationSeconds >= 10 minutes && durationSeconds <= 30 days,
             InvalidDuration(durationSeconds)
@@ -181,9 +238,10 @@ contract CryptoWordle is ReentrancyGuard {
         roundId = roundCount++;
         Round storage r = _rounds[roundId];
         r.creator = msg.sender;
-        r.pot = uint96(msg.value);
+        r.pot = uint96(pot);
         r.deadline = uint64(block.timestamp) + durationSeconds;
         r.status = Status.Open;
+        r.fromTreasury = fromTreasury;
 
         for (uint256 i = 0; i < WORD_LENGTH; ++i) {
             euint256 letter = Nox.fromExternal(letterHandles[i], proofs[i]);
@@ -193,7 +251,37 @@ contract CryptoWordle is ReentrancyGuard {
             r.secret[i] = letter;
         }
 
-        emit RoundCreated(roundId, msg.sender, msg.value, r.deadline);
+        emit RoundCreated(roundId, msg.sender, pot, r.deadline);
+    }
+
+    // ---------------------------------------------------------------------
+    // Treasury — the auditable house bankroll
+    // ---------------------------------------------------------------------
+
+    /// @notice Deposits ETH into the house treasury. Anyone may fund it; the
+    /// balance is public and only ever becomes round pots.
+    function fundTreasury() external payable {
+        require(msg.value > 0, EmptyPot());
+        treasury += msg.value;
+        emit TreasuryFunded(msg.sender, msg.value, treasury);
+    }
+
+    /// @notice Plain ETH transfers are treated as treasury deposits.
+    receive() external payable {
+        treasury += msg.value;
+        emit TreasuryFunded(msg.sender, msg.value, treasury);
+    }
+
+    /// @notice Withdraws UNCOMMITTED treasury to the treasurer. Open-round
+    /// pots are excluded by construction (`treasury` was debited when the
+    /// round opened), so player prizes can never be pulled back.
+    function withdrawTreasury(uint256 amount) external nonReentrant {
+        require(msg.sender == treasurer, NotTreasurer(msg.sender));
+        require(amount <= treasury, InsufficientTreasury(amount, treasury));
+        treasury -= amount;
+        emit TreasuryWithdrawn(treasurer, amount, treasury);
+        (bool ok, ) = treasurer.call{value: amount}("");
+        require(ok, PotTransferFailed(treasurer));
     }
 
     // ---------------------------------------------------------------------
@@ -359,8 +447,14 @@ contract CryptoWordle is ReentrancyGuard {
 
         emit RoundExpired(roundId);
 
-        (bool ok, ) = r.creator.call{value: pot}("");
-        require(ok, PotTransferFailed(r.creator));
+        if (r.fromTreasury) {
+            // Treasury-funded pot flows back into the bankroll — no transfer.
+            treasury += pot;
+            emit TreasuryFunded(address(this), pot, treasury);
+        } else {
+            (bool ok, ) = r.creator.call{value: pot}("");
+            require(ok, PotTransferFailed(r.creator));
+        }
     }
 
     // ---------------------------------------------------------------------

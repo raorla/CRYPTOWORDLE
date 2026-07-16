@@ -98,15 +98,30 @@ async function createRound(): Promise<void> {
   }
   creating = true;
   try {
-    const balance = await client.getBalance({ address: client.account!.address });
-    const needed = parseEther(POT_ETH) + parseEther(BANKROLL_FLOOR_ETH);
-    if (balance < needed) {
-      console.log(
-        `Bankroll floor reached (${(Number(balance) / 1e18).toFixed(4)} ETH < pot ${POT_ETH} + floor ${BANKROLL_FLOOR_ETH}) — not opening a new round.`,
-      );
-      return;
+    const potWei = parseEther(POT_ETH);
+
+    // Prefer the on-chain treasury (the auditable house bankroll); fall back
+    // to funding from the wallet when the treasury can't cover a pot.
+    const treasuryWei = (await client.readContract({
+      ...contract,
+      functionName: "treasury",
+    })) as bigint;
+    const fromTreasury = treasuryWei >= potWei;
+
+    if (!fromTreasury) {
+      const balance = await client.getBalance({ address: client.account!.address });
+      const needed = potWei + parseEther(BANKROLL_FLOOR_ETH);
+      if (balance < needed) {
+        console.log(
+          `Treasury empty and bankroll floor reached (${(Number(balance) / 1e18).toFixed(4)} ETH < pot ${POT_ETH} + floor ${BANKROLL_FLOOR_ETH}) — not opening a new round.`,
+        );
+        return;
+      }
     }
-    console.log("Creating a new round…");
+
+    console.log(
+      `Creating a new round (pot from ${fromTreasury ? `treasury: ${(Number(treasuryWei) / 1e18).toFixed(3)} ETH available` : "wallet"})…`,
+    );
     // The secret exists in plaintext ONLY inside this block.
     {
       const word = ANSWERS[randomInt(ANSWERS.length)];
@@ -115,9 +130,11 @@ async function createRound(): Promise<void> {
 
       const hash = await client.writeContract({
         ...contract,
-        functionName: "createRound",
-        args: [handles, proofs, DURATION],
-        value: parseEther(POT_ETH),
+        functionName: fromTreasury ? "createRoundFromTreasury" : "createRound",
+        args: fromTreasury
+          ? [handles, proofs, DURATION, potWei]
+          : [handles, proofs, DURATION],
+        value: fromTreasury ? undefined : potWei,
         gas: GAS.createRound,
         account: client.account!,
         chain: client.chain,
@@ -131,6 +148,42 @@ async function createRound(): Promise<void> {
   } finally {
     creating = false;
   }
+}
+
+/**
+ * Simulate-then-send: Nox gas can't be estimated but calls CAN be simulated,
+ * so a doomed tx (e.g. a claim raced by the winner's own tx) is skipped for
+ * free instead of burning gas on a revert.
+ */
+async function tryWrite(
+  functionName: string,
+  args: unknown[],
+  gas: bigint,
+): Promise<boolean> {
+  try {
+    await client.simulateContract({
+      ...contract,
+      functionName,
+      args,
+      account: client.account!,
+    } as any);
+  } catch (error) {
+    console.log(
+      `  ${functionName} would revert (${error instanceof Error ? error.message.split("\n")[0] : error}) — skipping`,
+    );
+    return false;
+  }
+  const hash = await client.writeContract({
+    ...contract,
+    functionName,
+    args,
+    gas,
+    account: client.account!,
+    chain: client.chain,
+  } as any);
+  const receipt = await client.waitForTransactionReceipt({ hash });
+  console.log(`  ${functionName} ${receipt.status} (${hash})`);
+  return receipt.status === "success";
 }
 
 /**
@@ -158,17 +211,9 @@ async function crankWinningClaims(roundId: bigint): Promise<boolean> {
     if (win.value !== true) continue;
 
     console.log(`Round #${roundId}: guess #${i} WON — cranking claim…`);
-    const hash = await client.writeContract({
-      ...contract,
-      functionName: "claim",
-      args: [roundId, BigInt(i), win.decryptionProof],
-      gas: GAS.claim,
-      account: client.account!,
-      chain: client.chain,
-    });
-    const receipt = await client.waitForTransactionReceipt({ hash });
-    console.log(`  claim ${receipt.status} (${hash})`);
-    return receipt.status === "success";
+    if (await tryWrite("claim", [roundId, BigInt(i), win.decryptionProof], GAS.claim)) {
+      return true;
+    }
   }
   return false;
 }
@@ -177,44 +222,48 @@ async function expireStaleRound(roundId: bigint, round: RoundInfo): Promise<bool
   const now = BigInt(Math.floor(Date.now() / 1000));
   if (now <= round.deadline + CLAIM_GRACE) return false;
   console.log(`Round #${roundId} expired unsolved — revealing & reclaiming pot…`);
-  const hash = await client.writeContract({
-    ...contract,
-    functionName: "revealExpired",
-    args: [roundId],
-    gas: GAS.revealExpired,
-    account: client.account!,
-    chain: client.chain,
-  });
-  const receipt = await client.waitForTransactionReceipt({ hash });
-  console.log(`  revealExpired ${receipt.status} (${hash})`);
-  return receipt.status === "success";
+  return tryWrite("revealExpired", [roundId], GAS.revealExpired);
 }
 
+/** How many trailing rounds each tick sweeps for claims/expiry. */
+const SWEEP_WINDOW = 25n;
+
+/**
+ * One housekeeping pass: sweep EVERY open round in the recent window (rounds
+ * can be created concurrently — e.g. by the sanity probe — and each holds real
+ * ETH), settling winners and expiring stale ones. Then make sure the LATEST
+ * round is open so there is always a game to play.
+ */
 async function tick(): Promise<void> {
-  const roundId = await latestRoundId();
-  if (roundId === null) {
+  const latest = await latestRoundId();
+  if (latest === null) {
     await createRound();
     return;
   }
-  const round = await readRound(roundId);
-  if (round.status !== 0) {
-    // Latest round is settled — open the next one.
-    await createRound();
-    return;
+
+  let latestIsOpen = false;
+  const from = latest >= SWEEP_WINDOW ? latest - SWEEP_WINDOW + 1n : 0n;
+  for (let id = from; id <= latest; id++) {
+    const round = await readRound(id);
+    if (round.status !== 0) continue;
+
+    if (round.guessCount > 0 && (await crankWinningClaims(id))) continue; // settled
+    if (await expireStaleRound(id, round)) continue; // expired & reclaimed
+
+    if (id === latest) {
+      latestIsOpen = true;
+      const secondsLeft = Number(round.deadline) - Math.floor(Date.now() / 1000);
+      console.log(
+        `Round #${id} open — ${round.guessCount} guesses, ${Math.max(0, secondsLeft)}s left, pot intact. 🔒`,
+      );
+    } else {
+      console.log(`Round #${id} still open in the background (not the featured round).`);
+    }
   }
-  // Open round: settle winners first, then check expiry.
-  if (round.guessCount > 0 && (await crankWinningClaims(roundId))) {
+
+  if (!latestIsOpen) {
     await createRound();
-    return;
   }
-  if (await expireStaleRound(roundId, round)) {
-    await createRound();
-    return;
-  }
-  const secondsLeft = Number(round.deadline) - Math.floor(Date.now() / 1000);
-  console.log(
-    `Round #${roundId} open — ${round.guessCount} guesses, ${Math.max(0, secondsLeft)}s left, pot intact. 🔒`,
-  );
 }
 
 const once = process.argv.includes("--once");
