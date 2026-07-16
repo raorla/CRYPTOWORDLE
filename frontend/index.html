@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>CryptoWordle — the Wordle nobody can cheat</title>
+    <meta
+      name="description"
+      content="An on-chain Wordle where the secret word is encrypted inside a TEE via iExec Nox. Only the colors ever come out. First to guess it wins the ETH pot."
+    />
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🔒%3C/text%3E%3C/svg%3E" />
+  </head>
+  <body>
+    <div id="app" aria-live="polite">
+      <header class="topbar">
+        <div class="brand" aria-label="CryptoWordle on iExec Nox">
+          <svg class="brand-lock" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+            <path
+              fill="currentColor"
+              d="M12 2a5 5 0 0 0-5 5v3H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2h-1V7a5 5 0 0 0-5-5Zm-3 5a3 3 0 1 1 6 0v3H9V7Zm3 7a1.75 1.75 0 0 1 .9 3.25V19a.9.9 0 0 1-1.8 0v-1.75A1.75 1.75 0 0 1 12 14Z"
+            />
+          </svg>
+          <span class="brand-name">CRYPTO<span class="brand-accent">WORDLE</span></span>
+          <span class="brand-sub">on iExec&nbsp;Nox</span>
+        </div>
+        <div class="topbar-actions">
+          <button id="btn-help" class="icon-btn" aria-label="How to play" title="How to play">?</button>
+          <button id="btn-sound" class="icon-btn" aria-label="Toggle sound" title="Sound"></button>
+          <button id="btn-theme" class="icon-btn" aria-label="Toggle theme" title="Theme"></button>
+          <button id="btn-connect" class="connect-btn">Connect</button>
+        </div>
+      </header>
+
+      <section id="round-banner" class="round-banner" hidden>
+        <div class="banner-item pot" title="Winner takes the pot">
+          <span class="banner-label">Pot</span>
+          <span id="pot-value" class="banner-value">—</span>
+        </div>
+        <div class="banner-item sealed-badge" id="sealed-badge">
+          <span class="lock-pulse" aria-hidden="true">🔒</span>
+          <span id="sealed-text">word sealed in a TEE</span>
+        </div>
+        <div class="banner-item countdown" title="Time left in this round">
+          <span class="banner-label">Ends in</span>
+          <span id="countdown-value" class="banner-value">—</span>
+        </div>
+        <div class="banner-item guesses" title="Guesses by all players">
+          <span class="banner-label">Guesses</span>
+          <span id="guesses-value" class="banner-value">0</span>
+        </div>
+      </section>
+
+      <main class="game">
+        <div id="status-pill" class="status-pill" hidden></div>
+        <div id="grid" class="grid" role="grid" aria-label="Wordle board"></div>
+        <div id="toast" class="toast" hidden role="alert"></div>
+        <div id="keyboard" class="keyboard" aria-label="On-screen keyboard"></div>
+      </main>
+
+      <footer class="footer">
+        <a id="contract-link" href="#" target="_blank" rel="noopener">contract ↗</a>
+        <span class="footer-sep">·</span>
+        <span>the word is <strong>mathematically un-leakable</strong> while the round is live</span>
+      </footer>
+    </div>
+
+    <div id="modal-root"></div>
+    <canvas id="confetti-canvas" aria-hidden="true"></canvas>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

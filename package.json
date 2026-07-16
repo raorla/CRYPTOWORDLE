@@ -1,0 +1,36 @@
+{
+  "name": "cryptowordle",
+  "version": "1.0.0",
+  "private": true,
+  "description": "CryptoWordle — a provably-fair, un-leakable Wordle on iExec Nox. The secret word lives encrypted in a TEE; only the colors ever come out.",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "compile": "hardhat compile",
+    "test": "hardhat test",
+    "deploy:sepolia": "node scripts/deploy.ts",
+    "export-abi": "node scripts/export-abi.ts",
+    "sanity:sepolia": "node scripts/sanity-check.ts",
+    "round:create": "node service/roundGenerator.ts --once",
+    "round:daemon": "node service/roundGenerator.ts"
+  },
+  "dependencies": {
+    "@iexec-nox/handle": "0.1.0-beta.13",
+    "@iexec-nox/nox-protocol-contracts": "0.2.4",
+    "@openzeppelin/contracts": "5.6.1",
+    "dotenv": "^16.4.5",
+    "viem": "^2.46.3"
+  },
+  "devDependencies": {
+    "@iexec-nox/nox-hardhat-plugin": "0.1.0",
+    "@nomicfoundation/hardhat-toolbox-viem": "^5.0.3",
+    "@tsconfig/node22": "^22.0.2",
+    "@types/node": "^22.11.0",
+    "hardhat": "^3.4.0",
+    "typescript": "~5.8.0"
+  },
+  "overrides": {
+    "@nomicfoundation/hardhat-node-test-runner": "3.0.9"
+  }
+}

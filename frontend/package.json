@@ -1,0 +1,19 @@
+{
+  "name": "cryptowordle-frontend",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@iexec-nox/handle": "0.1.0-beta.13",
+    "viem": "^2.46.3"
+  },
+  "devDependencies": {
+    "typescript": "~5.8.0",
+    "vite": "^6.3.5"
+  }
+}

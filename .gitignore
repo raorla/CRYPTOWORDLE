@@ -1,0 +1,26 @@
+# Node modules
+node_modules/
+
+# Compilation output
+/dist
+frontend/dist
+
+# Test coverage output
+/coverage
+
+# Hardhat files
+/artifacts
+/cache
+
+# Nox plugin offchain stack logs
+/offchain-services.log
+
+# Secrets — never commit keys
+.env
+.env.local
+
+# Deployment records are committed on purpose (deployments/*.json), but logs are not
+*.log
+
+# macOS
+.DS_Store

@@ -1,0 +1,16 @@
+{
+  "extends": "@tsconfig/node22/tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "allowImportingTsExtensions": true,
+    "forceConsistentCasingInFileNames": true,
+    "noImplicitOverride": true,
+    "noUncheckedSideEffectImports": true,
+    "skipDefaultLibCheck": true,
+    "isolatedModules": true,
+    "resolveJsonModule": true,
+    "typeRoots": ["${configDir}/node_modules/@types"]
+  },
+  "include": ["hardhat.config.ts", "test", "scripts", "service", "shared"],
+  "exclude": ["${configDir}/dist", "${configDir}/node_modules", "frontend"]
+}
