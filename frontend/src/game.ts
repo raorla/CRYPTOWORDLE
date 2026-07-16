@@ -197,7 +197,15 @@ async function decryptRow(raw: GuessRaw, row: GuessRow): Promise<void> {
 
 export function typeLetter(letter: string): void {
   const s = getState();
-  if (!canType(s.phase)) return;
+  if (!canType(s.phase)) {
+    // Silence is confusing — say WHY the key did nothing.
+    if (s.phase === "no-wallet") {
+      update({ error: "Connect your wallet to play" });
+    } else if (s.phase === "spectator") {
+      update({ error: "Out of guesses this round — spectating" });
+    }
+    return;
+  }
   if (s.typed.length >= WORD_LENGTH) return;
   update({ typed: s.typed + letter, error: null });
   events.emit("key-tap");

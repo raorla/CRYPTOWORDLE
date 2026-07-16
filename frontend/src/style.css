@@ -99,6 +99,12 @@ button {
   cursor: pointer;
 }
 
+/* Keyboard navigation: a visible engraving-gold ring, everywhere. */
+:focus-visible {
+  outline: 2px solid var(--metal-deep);
+  outline-offset: 2px;
+}
+
 /* ---------- decorative guilloché rings ---------- */
 
 .guilloche {
@@ -248,6 +254,15 @@ button {
 .connect-btn.connected {
   letter-spacing: 0.1em;
   font-variant-numeric: tabular-nums;
+}
+
+/* Connected + hover/focus = the button becomes "Disconnect" — say it in red ink. */
+.connect-btn.connected:hover,
+.connect-btn.connected:focus-visible {
+  border-color: var(--danger);
+  color: var(--danger);
+  background: transparent;
+  box-shadow: none;
 }
 
 .masthead {
@@ -1155,6 +1170,43 @@ button {
 
 /* ---------- responsive ---------- */
 
+/* When the three-column certificate wraps, the BOARD must come first — on a
+   phone you should be able to play without scrolling past the pot and ledger.
+   The asides then sit side by side beneath the keyboard where room allows. */
+@media (max-width: 1099px) {
+  .game-layout {
+    align-items: center;
+  }
+
+  .board-column {
+    order: -1;
+    flex-basis: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .aside {
+    max-width: 340px;
+  }
+}
+
+/* Deadline urgency: the last 15 minutes (= the claim grace window) pulse red. */
+.data-value.urgent {
+  color: var(--danger);
+  animation: urgentPulse 1.2s ease-in-out infinite;
+}
+
+@keyframes urgentPulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.55;
+  }
+}
+
 @media (max-width: 480px) {
   .util-row {
     padding: 12px 14px 0;
@@ -1192,6 +1244,14 @@ button {
   .wordmark {
     font-size: 27px;
     letter-spacing: 0.08em;
+  }
+
+  .masthead {
+    padding: 6px 16px 12px;
+  }
+
+  .tagline {
+    margin-top: 6px;
   }
 
   .game-layout {

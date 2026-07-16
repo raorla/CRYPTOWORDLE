@@ -202,6 +202,7 @@ export function renderCountdown(state: AppState): void {
   if (!state.round) return;
   if (state.round.status !== 0) {
     el.textContent = state.round.status === 1 ? "settled" : "expired";
+    el.classList.remove("urgent");
     return;
   }
   const seconds = Math.max(0, state.round.deadline - Math.floor(Date.now() / 1000));
@@ -210,6 +211,8 @@ export function renderCountdown(state: AppState): void {
   const s = seconds % 60;
   el.textContent =
     h > 0 ? `${h}h ${String(m).padStart(2, "0")}m` : `${m}:${String(s).padStart(2, "0")}`;
+  // Final 15 minutes: make the deadline felt (matches the claim grace period).
+  el.classList.toggle("urgent", seconds > 0 && seconds < 15 * 60);
 }
 
 const BUSY_PHASES = new Set(["sealing", "computing", "decrypting", "claiming"]);

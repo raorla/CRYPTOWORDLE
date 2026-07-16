@@ -64,6 +64,24 @@ export async function connectWallet(): Promise<`0x${string}`> {
   return account;
 }
 
+/**
+ * Disconnects the wallet. MetaMask has no true programmatic disconnect, but
+ * `wallet_revokePermissions` (MetaMask ≥ 11) drops the site's account access;
+ * either way a reload gives a guaranteed-clean state (the handle client and
+ * store are both bound to the old account).
+ */
+export async function disconnectWallet(): Promise<void> {
+  try {
+    await window.ethereum?.request({
+      method: "wallet_revokePermissions",
+      params: [{ eth_accounts: {} }],
+    });
+  } catch {
+    /* older wallets don't support revoke — the reload still forgets the session */
+  }
+  window.location.reload();
+}
+
 const contract = { address: CONTRACT_ADDRESS, abi: ABI } as const;
 
 // ---------------------------------------------------------------------------

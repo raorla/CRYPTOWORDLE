@@ -1,5 +1,5 @@
 import "./style.css";
-import { connectWallet, hasWallet } from "./chain.ts";
+import { connectWallet, disconnectWallet, hasWallet } from "./chain.ts";
 import { CONTRACT_ADDRESS, ETHERSCAN, isDeployed } from "./config.ts";
 import {
   backspace,
@@ -79,17 +79,36 @@ if (hasWallet() && window.ethereum?.on) {
 }
 
 connectBtn.addEventListener("click", async () => {
-  if (getState().account) return;
+  if (getState().account) {
+    // Connected: the same button disconnects (labelled so on hover/focus).
+    connectBtn.textContent = "Disconnecting…";
+    await disconnectWallet();
+    return;
+  }
   try {
     connectBtn.textContent = "Connecting…";
     const account = await connectWallet();
     update({ account, phase: "idle", error: null });
     await loadLatestRound();
   } catch (error: any) {
-    connectBtn.textContent = "Connect";
+    connectBtn.textContent = "Connect wallet";
     showToast(`${error?.shortMessage ?? error?.message ?? error}`.slice(0, 90));
   }
 });
+
+// While connected the button shows the address; reveal its second job on
+// hover/focus so disconnecting is discoverable without cluttering the bar.
+const showDisconnectHint = () => {
+  if (getState().account) connectBtn.textContent = "Disconnect";
+};
+const hideDisconnectHint = () => {
+  const account = getState().account;
+  if (account) connectBtn.textContent = `${account.slice(0, 6)}…${account.slice(-4)}`;
+};
+connectBtn.addEventListener("mouseenter", showDisconnectHint);
+connectBtn.addEventListener("focus", showDisconnectHint);
+connectBtn.addEventListener("mouseleave", hideDisconnectHint);
+connectBtn.addEventListener("blur", hideDisconnectHint);
 
 // ---------------------------------------------------------------------------
 // Input
@@ -131,10 +150,19 @@ subscribe((state) => {
   renderBanner(state);
   renderStatus(state);
 
-  connectBtn.textContent = state.account
-    ? `${state.account.slice(0, 6)}…${state.account.slice(-4)}`
-    : "Connect wallet";
+  const hintActive =
+    connectBtn.matches(":hover") || document.activeElement === connectBtn;
+  if (!(state.account && hintActive)) {
+    // Don't clobber the "Disconnect" hover/focus hint mid-interaction.
+    connectBtn.textContent = state.account
+      ? `${state.account.slice(0, 6)}…${state.account.slice(-4)}`
+      : "Connect wallet";
+  }
   connectBtn.classList.toggle("connected", Boolean(state.account));
+  connectBtn.setAttribute(
+    "aria-label",
+    state.account ? `Connected as ${state.account} — disconnect` : "Connect wallet",
+  );
 
   if (state.error) {
     showToast(state.error);
@@ -144,6 +172,11 @@ subscribe((state) => {
 });
 
 window.setInterval(() => renderCountdown(getState()), 1000);
+
+// Dev-only hook for driving state from the console / e2e tests.
+if (import.meta.env.DEV) {
+  (window as any).__cw = { getState, update };
+}
 
 // ---------------------------------------------------------------------------
 // Game events → juice
