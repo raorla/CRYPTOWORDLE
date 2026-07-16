@@ -32,10 +32,17 @@ const POT_ETH = process.env.ROUND_POT_ETH ?? "0.01";
 const DURATION = BigInt(process.env.ROUND_DURATION_SECONDS ?? "86400");
 const CLAIM_GRACE = 15n * 60n; // matches CryptoWordle.CLAIM_GRACE_PERIOD
 
+// Stop opening rounds when the wallet drops below this floor — keeps a test
+// bankroll from silently draining to zero on pots + gas.
+const BANKROLL_FLOOR_ETH = process.env.BANKROLL_FLOOR_ETH ?? "0.05";
+
 // Fail fast on bad config rather than sending a doomed tx: parseEther throws on
 // junk pots, and the contract bounds duration to [10 min, 30 days].
 if (!/^\d+(\.\d+)?$/.test(POT_ETH) || Number(POT_ETH) <= 0) {
   throw new Error(`ROUND_POT_ETH must be a positive decimal ETH amount, got "${POT_ETH}"`);
+}
+if (!/^\d+(\.\d+)?$/.test(BANKROLL_FLOOR_ETH)) {
+  throw new Error(`BANKROLL_FLOOR_ETH must be a decimal ETH amount, got "${BANKROLL_FLOOR_ETH}"`);
 }
 if (DURATION < 600n || DURATION > 30n * 24n * 3600n) {
   throw new Error(
@@ -91,6 +98,14 @@ async function createRound(): Promise<void> {
   }
   creating = true;
   try {
+    const balance = await client.getBalance({ address: client.account!.address });
+    const needed = parseEther(POT_ETH) + parseEther(BANKROLL_FLOOR_ETH);
+    if (balance < needed) {
+      console.log(
+        `Bankroll floor reached (${(Number(balance) / 1e18).toFixed(4)} ETH < pot ${POT_ETH} + floor ${BANKROLL_FLOOR_ETH}) — not opening a new round.`,
+      );
+      return;
+    }
     console.log("Creating a new round…");
     // The secret exists in plaintext ONLY inside this block.
     {
