@@ -1,7 +1,7 @@
 {
   "chainId": 11155111,
-  "address": "0x0000000000000000000000000000000000000000",
-  "deployBlock": 0,
-  "txHash": "0x",
-  "deployedAt": "NOT_DEPLOYED_YET — run npm run deploy:sepolia"
+  "address": "0x5246befd9bc31b44d90e274c758cce3d24a0490f",
+  "deployBlock": 11285717,
+  "txHash": "0xb889bf2ebd3872bf7d6844a8efa602c8d06286c3872180983e889b360a184e3d",
+  "deployedAt": "2026-07-16T15:45:52.587Z"
 }

@@ -135,13 +135,13 @@ Wallets and RPCs cannot estimate gas for transactions that touch the Nox precomp
 
 ## Deployed addresses (ETH Sepolia)
 
-> **Fill after deploy** — `npm run deploy:sepolia` writes the address into `deployments/sepolia.json`, which is the source of truth for the frontend and services.
-
 | Contract | Address |
 |----------|---------|
-| CryptoWordle | `TBD — see deployments/sepolia.json` |
+| CryptoWordle | [`0x5246befd9bc31b44d90e274c758cce3d24a0490f`](https://sepolia.etherscan.io/address/0x5246befd9bc31b44d90e274c758cce3d24a0490f) (deploy block 11285717) |
 | NoxCompute (iExec, chainId 11155111) | `0x24Ef36Ec5b626D7DCD09a98F3083c2758F0F77bF` |
 | Nox handle gateway | `https://gateway-testnets.noxprotocol.dev` |
+
+Verified live on 2026-07-16 by [`scripts/sanity-check.ts`](scripts/sanity-check.ts): [round created](https://sepolia.etherscan.io/tx/0x7a39c52f7c90f5a8f68e5a426d8b968de3e0b1e72475eb21757a921ceff49d9b) → guess `porch` vs the sealed word → colors decrypted 🟨🟨🟨⬜⬜ → winning guess → [claim with on-chain KMS proof, pot paid](https://sepolia.etherscan.io/tx/0x28fdc0c3a4689c43a3f071946ffa502a09eb1f3afdb09bc4c349295ca4d2cd03) → revealed word decrypts to `vapor`. (`npm run deploy:sepolia` rewrites `deployments/sepolia.json`, the source of truth for the frontend and services.)
 
 ---
 

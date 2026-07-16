@@ -66,8 +66,10 @@ Runtime support is exactly five types — `ebool`, `euint16`, `euint256`, `eint1
 
 Results materialise asynchronously: seconds locally, and on Sepolia the gateway can answer "not yet computed" for **minutes** after the transaction that produced a handle. The docs say "asynchronous" but give no numbers and no guidance. The plugin's internal poll before decrypt is 60 × 100ms = **6 seconds** — far too short for a contract that emits ~95 ops into a sequential runner queue; our tests only pass because we vendored the starter's `waitForHandleResolved` gateway-polling util with a 300s timeout, and our Sepolia scripts wrap every `publicDecrypt` in a retry loop (24 × 5s). Every Nox consumer will write this same code.
 
-**Impact:** flaky-looking tests and scripts until you discover the polling pattern; a helper that clearly belongs in the SDK exists only as an unexported test util in the starter.
-**Fix:** ship `waitForHandleResolved` (and a decrypt-with-retry option: `publicDecrypt(handle, { timeoutMs })`) in `@iexec-nox/handle`; make the plugin's resolve timeout configurable; publish expected-latency figures per network.
+A second latency shape we hit live on Sepolia: during the lag window `publicDecrypt` on a freshly-`allowPublicDecryption`'d handle returns **HTTP 403 `access_denied` "not publicly decryptable"** (the ACL grant itself hasn't been indexed yet), and occasionally a transient **503 RPC error** — three different error shapes for the same "be patient" condition. A naive client that treats 403 as a hard permission failure (the natural reading) will wrongly conclude its ACL is broken.
+
+**Impact:** flaky-looking tests and scripts until you discover the polling pattern; a helper that clearly belongs in the SDK exists only as an unexported test util in the starter; misleading 403s during ACL-indexing lag send developers down a permissions rabbit hole.
+**Fix:** ship `waitForHandleResolved` (and a decrypt-with-retry option: `publicDecrypt(handle, { timeoutMs })`) in `@iexec-nox/handle`; make the plugin's resolve timeout configurable; publish expected-latency figures per network; return a distinct `not_yet_indexed` error (or 425/Retry-After) instead of 403 while a public-decryption grant is still propagating.
 
 ### 8. Ecosystem fragmentation: Hardhat 3-only, ESM-only, Node 22+
 
