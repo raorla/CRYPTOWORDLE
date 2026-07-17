@@ -17,10 +17,16 @@ declare global {
   }
 }
 
-/** Read path: injected provider when present, public RPC otherwise. */
+/**
+ * Read path: ALWAYS the public Sepolia RPC. Routing reads through an injected
+ * wallet breaks the whole spectator mode whenever the wallet happens to sit on
+ * another chain (eth_call then hits mainnet and every read reverts) — a judge
+ * with MetaMask parked on mainnet would see an empty, "unreachable" app.
+ * Writes go through the wallet client, which hops to Sepolia on connect.
+ */
 export const publicClient: PublicClient = createPublicClient({
   chain: sepolia,
-  transport: window.ethereum ? custom(window.ethereum) : http(),
+  transport: http(),
 });
 
 let walletClient: (WalletClient & ReturnType<typeof publicActions>) | null = null;
