@@ -28,6 +28,12 @@ blob-report/
 # Local design references (kept on disk, not in the repo)
 CryptoWordle design improvement/
 
+# Local working notes & ops tooling (kept on disk, not in the repo)
+CLAUDE.md
+TODO.md
+.claude/
+daemon-ctl.sh
+
 # Deployment records are committed on purpose (deployments/*.json), but logs are not
 *.log
 

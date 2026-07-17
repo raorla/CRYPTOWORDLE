@@ -32,7 +32,7 @@ Nothing in this README asks for trust. Each claim maps to something you can run,
 | The pot money is real and escrowed on-chain | [Blockscout balance + Read Contract](https://eth-sepolia.blockscout.com/address/0xaa6f76b4dc7d2df17ff73c7162523f0985289fc9) · invariant `balance == treasury + Σ open pots` pinned by `npm test` → *"opens rounds from the treasury and keeps the balance invariant"* ([test/integration/treasury.test.ts](test/integration/treasury.test.ts)) |
 | It runs on the live testnet, end to end | Linked create → guess → claim → reveal transactions in [Deployed addresses](#deployed-addresses-eth-sepolia) below, plus `npm run sanity:sepolia` to reproduce the whole loop yourself |
 
-No Docker handy? The fast tiers run in seconds: `npm run test:unit` (7) and `cd frontend && npm test` (55, Vitest) — the integration suite (16 tests against the real KMS/TEE stack in Docker) takes a few minutes. [CLAUDE.md](CLAUDE.md) maps the whole codebase for AI-assisted review.
+No Docker handy? The fast tiers run in seconds: `npm run test:unit` (7) and `cd frontend && npm test` (55, Vitest) — the integration suite (16 tests against the real KMS/TEE stack in Docker) takes a few minutes. The [Project layout](#project-layout) table below maps every path to its role.
 
 ---
 
