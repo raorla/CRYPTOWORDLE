@@ -55,6 +55,34 @@ The remaining trust assumptions are Nox's own: Intel TDX attestation, and the No
 
 ---
 
+## How we use Nox, primitive by primitive
+
+The whole game rests on nine on-chain Nox primitives and three client-side SDK calls. Here is the map from each one to the exact place it earns its keep in [`contracts/CryptoWordle.sol`](contracts/CryptoWordle.sol):
+
+| Nox primitive | Called from | What it does for the game |
+|---|---|---|
+| `Nox.fromExternal(handle, proof)` | round creation (both variants) | Turns the five encrypted letter inputs into usable `euint256`s. The input proof binds each ciphertext to the submitting wallet and this contract, so nobody can open a round with someone else's ciphertext. |
+| `Nox.allowThis(x)` | round creation, `guess`, `_revealSecret` | The ACL heart of the design. On the secret letters it is the *only* grant: the contract stays the sole principal, which is exactly what the un-leakability test asserts. |
+| `Nox.toEuint256(k)` | `guess`, `_revealSecret` | Trivial encryptions of the constants (0, 1, 2), the public guess letters and the win target, so plaintext values can enter encrypted arithmetic. |
+| `Nox.eq(a, b)` | `guess` | One encrypted comparison of each guess letter against each secret position (a 5×5 match matrix; the diagonal doubles as the green check), plus the final `colorSum == 10` win test. |
+| `Nox.select(cond, a, b)` | `guess` | The branchless encrypted "if". Converts match bits to 0/1 for counting, then picks each colour: green (2), else yellow (1) if present, else grey (0). |
+| `Nox.add(a, b)` | `guess`, `_revealSecret` | Accumulates the presence count and the row's colour sum; `add(secret, 0)` later mints the fresh handles for the reveal. |
+| `Nox.gt(cnt, 0)` | `guess` | "Present anywhere" as a counting argument, because Nox has no encrypted OR (see the duplicate-letter section). |
+| `Nox.allowPublicDecryption(x)` | `guess`, `_revealSecret` | Marks the *only* values that may ever leave ciphertext: the five colours, the win flag, and (once the round is over) the revealed letters. Never the live secret. |
+| `Nox.publicDecrypt(handle, proof)` | `claim` | The settlement trick: verifies the KMS decryption proof *on-chain*. A claim is valid iff the KMS attests that the win handle decrypts to true; forged proofs revert. |
+
+Per guess letter, the 5×5 comparison row, its counting selects and adds, the presence `gt` and the two colour selects add up fast: one `guess()` emits ~95 encrypted ops (about 17k gas each, measured by the gas probe).
+
+On the client, three calls from `@iexec-nox/handle` close the loop:
+
+| SDK call | Called from | Role |
+|---|---|---|
+| `createViemHandleClient(walletClient)` | `service/common.ts`, `frontend/src/nox.ts` | Wallet-backed handle client; gateway, subgraph and NoxCompute address all resolve from the chainId. |
+| `encryptInput(letters)` | `service/roundGenerator.ts` | Encrypts the five letters over attested TLS to the gateway TEE, returning the handles and input proofs that round creation consumes. |
+| `publicDecrypt(handle)` | `frontend/src/nox.ts`, `service/common.ts` | Fetches a decrypted value together with its KMS `decryptionProof`. The frontend paints colours from it; the claim path forwards the proof to the contract. Both sides wrap it in retries, because results materialise seconds to minutes after the transaction. |
+
+---
+
 ## Architecture
 
 ```
