@@ -1275,6 +1275,690 @@ button {
   }
 }
 
+/* ============================================================
+   The Sealing — intro / loading veil (static HTML in index.html,
+   choreography in pure CSS delays, dismissal in ui/intro.ts)
+   ============================================================ */
+
+#intro {
+  position: fixed;
+  inset: 0;
+  z-index: 45; /* under modals (50): showNotDeployedModal always wins */
+  display: grid;
+  place-items: center;
+  background:
+    var(--paper-texture),
+    var(--paper);
+  overflow: hidden;
+}
+
+.intro-inner {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: clamp(8px, 1.9vh, 14px);
+  padding: 24px;
+  text-align: center;
+}
+
+.intro-kicker {
+  font-size: 10px;
+  letter-spacing: 0.34em;
+  text-transform: uppercase;
+  color: var(--metal-deep);
+  animation: introTrack 0.5s ease backwards;
+}
+
+@keyframes introTrack {
+  from {
+    opacity: 0;
+    letter-spacing: 0.6em;
+  }
+  to {
+    letter-spacing: 0.34em;
+  }
+}
+
+.intro-wordmark {
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: clamp(30px, 4.4vw, 52px);
+  letter-spacing: 0.14em;
+  line-height: 1.05;
+  color: var(--ink);
+  animation: riseIn 0.5s ease 0.3s backwards;
+}
+
+.intro-wordmark span {
+  color: var(--metal-deep);
+}
+
+.intro-subtitle {
+  font-size: 11px;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+  color: var(--muted);
+  animation: fadeIn 0.4s ease 0.65s backwards;
+}
+
+.intro-stage {
+  /* everything in the ceremony scales off this square so the disc's rings
+     stay inside the stage and never cross the text above/below it */
+  --stage: min(300px, 80vw, 38vh);
+  position: relative;
+  width: var(--stage);
+  height: var(--stage);
+  display: grid;
+  place-items: center;
+  margin: 2px 0;
+}
+
+.intro-disc {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 2px solid var(--metal);
+  background: repeating-radial-gradient(circle at center, var(--line) 0 1px, transparent 1px 9px);
+  opacity: 0.35;
+  animation: certIn 0.4s cubic-bezier(0.22, 1.2, 0.36, 1) backwards;
+  pointer-events: none;
+}
+
+.intro-tiles {
+  position: relative;
+  display: flex;
+  gap: calc(var(--stage) * 0.026);
+}
+
+.intro-tile {
+  width: calc(var(--stage) * 0.14);
+  height: calc(var(--stage) * 0.14);
+  display: grid;
+  place-items: center;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: calc(var(--stage) * 0.062);
+  color: var(--muted);
+  border: 1px solid var(--metal);
+  background: linear-gradient(110deg, var(--panel) 32%, var(--metal-soft) 46%, var(--panel) 60%);
+  background-size: 230% 100%;
+  animation:
+    stampIn 0.4s ease backwards var(--d),
+    scanline 1.5s linear infinite;
+}
+
+/* the moment the chain read settles: the shimmer stops and the tiles recede
+   under the slamming seal — they must fade or the stamp reads as a collision */
+#intro.sealed .intro-tile {
+  animation: none;
+  background: var(--panel);
+  border-color: var(--metal-deep);
+  opacity: 0.22;
+  transform: scale(0.92);
+  transition: opacity 0.4s ease, transform 0.4s ease;
+}
+
+.intro-seal {
+  position: absolute;
+  display: none;
+}
+
+#intro.sealed .intro-seal {
+  display: grid;
+  place-items: center;
+}
+
+.intro-seal-ring {
+  width: calc(var(--stage) * 0.42);
+  height: calc(var(--stage) * 0.42);
+  border-radius: 50%;
+  border: 2px solid var(--metal);
+  display: grid;
+  place-items: center;
+  background: var(--paper);
+  box-shadow: 0 6px 30px -8px rgba(184, 145, 47, 0.55);
+  animation: sealSlam 0.7s cubic-bezier(0.22, 1.4, 0.36, 1);
+}
+
+.intro-seal-inner {
+  width: calc(var(--stage) * 0.335);
+  height: calc(var(--stage) * 0.335);
+  border-radius: 50%;
+  border: 1px solid var(--metal-deep);
+  background: var(--metal-soft);
+  display: grid;
+  place-items: center;
+  color: var(--metal-deep);
+}
+
+.intro-caption {
+  font-size: 12px;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  font-weight: 700;
+  color: var(--ink);
+  animation: introTrack 0.45s ease-out backwards;
+}
+
+.intro-subline {
+  margin-top: -6px;
+  font-size: 10px;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--muted);
+  animation: fadeIn 0.3s ease 0.2s backwards;
+}
+
+/* pre-seal, caption + subline keep their footprint so unhiding them at the
+   seal beat doesn't shove the status line and skip button down mid-ceremony */
+.intro-caption[hidden],
+.intro-subline[hidden] {
+  display: block;
+  visibility: hidden;
+}
+
+.intro-status {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 20px;
+  font-size: 10px;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--muted);
+  animation: fadeIn 0.25s ease 1.1s backwards;
+}
+
+/* once sealed nothing is loading any more — the spinner would lie */
+#intro.sealed .intro-status .spinner {
+  display: none;
+}
+
+.intro-skip {
+  margin-top: 8px;
+  padding: 12px 16px;
+  background: transparent;
+  border: none;
+  font-size: 9.5px;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--muted);
+  animation: fadeIn 0.3s ease 1.6s backwards;
+}
+
+.intro-skip:hover,
+.intro-skip:focus-visible {
+  color: var(--metal-deep);
+}
+
+.intro-microprint {
+  position: absolute;
+  bottom: 16px;
+  left: 0;
+  right: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-align: center;
+  font-size: 7.5px;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--muted);
+  opacity: 0.65;
+}
+
+/* exit: the veil lifts */
+#intro.intro-done {
+  opacity: 0;
+  transform: scale(1.03);
+  transition: opacity 0.45s ease, transform 0.45s ease;
+  pointer-events: none;
+}
+
+#intro.intro-fast.intro-done {
+  transition-duration: 0.25s;
+}
+
+/* app entrance is held until the veil lifts, then replays */
+.pre-intro .rise,
+.pre-intro .rise-1,
+.pre-intro .rise-2,
+.pre-intro .rise-3,
+.pre-intro .rise-4,
+.pre-intro .rise-5 {
+  animation: none;
+  opacity: 0;
+}
+
+/* returning visitor (same session): no ceremony — an invisible-under-300ms
+   veil that only materialises if the chain read is actually slow */
+.intro-seen #intro {
+  opacity: 0;
+  animation: introVeil 0.2s ease 0.3s forwards;
+}
+
+@keyframes introVeil {
+  to {
+    opacity: 1;
+  }
+}
+
+.intro-seen #intro .intro-kicker,
+.intro-seen #intro .intro-wordmark,
+.intro-seen #intro .intro-subtitle,
+.intro-seen #intro .intro-stage,
+.intro-seen #intro .intro-caption,
+.intro-seen #intro .intro-subline,
+.intro-seen #intro .intro-skip,
+.intro-seen #intro .intro-microprint {
+  display: none;
+}
+
+/* the veil animation's forwards fill would override the exit transition */
+.intro-seen #intro.intro-done {
+  animation: none;
+  opacity: 0;
+}
+
+/* ---------- hall of records (wide certificate modal) ---------- */
+
+.modal.modal-wide {
+  max-width: 720px;
+  text-align: left;
+}
+
+.modal.modal-wide .modal-kicker,
+.modal.modal-wide h2,
+.modal.modal-wide .modal-sub {
+  text-align: center;
+}
+
+.records-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 30px 0;
+  font-size: 10px;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.honors {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin: 14px 0 18px;
+}
+
+.honor {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  box-shadow: inset 0 0 0 3px var(--panel), inset 0 0 0 4px var(--line);
+  padding: 14px 10px;
+  text-align: center;
+}
+
+.honor-figure {
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: 32px;
+  line-height: 1;
+  color: var(--metal-deep);
+  font-variant-numeric: tabular-nums;
+}
+
+.honor-label {
+  margin-top: 6px;
+  font-size: 10px;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.champ-rows {
+  margin: 10px 0 4px;
+}
+
+.champ-row {
+  display: grid;
+  grid-template-columns: 40px 1fr auto auto;
+  gap: 10px;
+  align-items: baseline;
+  padding: 8px 6px;
+  border-bottom: 1px solid var(--line);
+  font-size: 11.5px;
+}
+
+.champ-row .roman {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--metal-deep);
+}
+
+.champ-row.first {
+  border-left: 3px solid var(--metal);
+  padding-left: 9px;
+}
+
+.champ-row.first .champ-eth {
+  font-family: var(--font-display);
+  font-weight: 700;
+  color: var(--metal-deep);
+}
+
+.champ-row.champ-you {
+  background: var(--metal-soft);
+}
+
+.you-tag {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 1px 5px;
+  font-size: 9px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  border: 1px solid var(--metal-deep);
+  color: var(--metal-deep);
+}
+
+.champ-wins,
+.champ-eth {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.more-line {
+  text-align: center;
+  margin: 10px 0 0;
+  font-size: 9px;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.table-scroll {
+  overflow-x: auto;
+  margin-top: 10px;
+}
+
+.archive {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+}
+
+.archive th {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--muted);
+  text-align: left;
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--line);
+  white-space: nowrap;
+}
+
+.archive td {
+  padding: 7px 8px;
+  border-bottom: 1px solid var(--line);
+  white-space: nowrap;
+}
+
+.archive tbody tr:hover td {
+  background: var(--metal-soft);
+}
+
+.chip {
+  display: inline-block;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  padding: 2px 7px;
+  transform: rotate(-1deg);
+}
+
+.chip-solved {
+  background: var(--ok);
+  color: var(--stamp-text);
+}
+
+.chip-expired {
+  background: var(--dim);
+  color: var(--stamp-text);
+}
+
+.chip-open {
+  border: 1px solid var(--metal);
+  color: var(--metal-deep);
+  background: linear-gradient(110deg, var(--panel) 32%, var(--metal-soft) 46%, var(--panel) 60%);
+  background-size: 230% 100%;
+  animation: scanline 1.5s linear infinite;
+}
+
+.records-note {
+  margin: 14px 0 12px;
+  text-align: center;
+  font-size: 8px;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--muted);
+  opacity: 0.75;
+}
+
+.empty-ring {
+  width: 94px;
+  height: 94px;
+  margin: 16px auto 10px;
+  border: 2px solid var(--line-strong);
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 30px;
+  color: var(--muted);
+}
+
+.empty-label {
+  text-align: center;
+  font-size: 11px;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  font-weight: 700;
+  color: var(--metal-deep);
+  margin-bottom: 6px;
+}
+
+@media (max-width: 480px) {
+  .honors {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ---------- vault inspector ---------- */
+
+.seal-inspect {
+  margin-top: 10px;
+  padding: 0 0 1px;
+  background: transparent;
+  border: none;
+  border-bottom: 1px dotted var(--metal);
+  font-size: 9.5px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--metal-deep);
+}
+
+.seal-inspect:hover {
+  color: var(--metal);
+}
+
+.vault-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 14px 0;
+}
+
+.vault-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid var(--line);
+  padding: 8px 12px;
+  font-size: 11px;
+}
+
+.vault-row .roman {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--metal-deep);
+  flex: none;
+  width: 26px;
+}
+
+.vault-handle {
+  flex: 1;
+  background: transparent;
+  border: none;
+  padding: 0;
+  text-align: right;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--ink);
+  border-bottom: 1px dotted transparent;
+}
+
+.vault-handle:hover {
+  color: var(--metal-deep);
+  border-bottom-color: var(--metal);
+}
+
+.vault-caption {
+  margin: 12px 0;
+  text-align: center;
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--metal-deep);
+  line-height: 1.9;
+}
+
+/* ---------- independent audit ---------- */
+
+.audit-line {
+  margin-top: 8px;
+  font-size: 9.5px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  font-weight: 700;
+  color: var(--ok);
+  animation: stampIn 0.4s ease backwards;
+}
+
+.audit-line.failed {
+  color: var(--danger);
+}
+
+.audit-strip {
+  margin: 4px 0 14px;
+  padding: 10px 12px;
+  border: 1px solid var(--ok);
+  text-align: center;
+}
+
+.audit-strip.failed {
+  border-color: var(--danger);
+}
+
+.audit-strip .audit-label {
+  font-size: 9px;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 4px;
+}
+
+.audit-strip .audit-verdict {
+  font-size: 10.5px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  font-weight: 700;
+  color: var(--ok);
+  animation: stampIn 0.4s ease backwards;
+}
+
+.audit-strip.failed .audit-verdict {
+  color: var(--danger);
+}
+
+/* ---------- enclave docket (I–IV stepper during the TEE round-trip) ---------- */
+
+.docket {
+  width: 100%;
+  max-width: 520px;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  padding: 10px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  animation: fadeIn 0.25s ease;
+}
+
+.docket-step {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 9.5px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.docket-step .roman {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 12px;
+  flex: none;
+  width: 22px;
+  color: inherit;
+}
+
+.docket-mark {
+  flex: none;
+  width: 14px;
+  display: inline-grid;
+  place-items: center;
+  font-weight: 700;
+}
+
+.docket-step.done {
+  color: var(--ink);
+}
+
+.docket-step.done .docket-mark {
+  color: var(--ok);
+  animation: stampIn 0.3s ease;
+}
+
+.docket-step.active {
+  color: var(--metal-deep);
+  background: linear-gradient(110deg, transparent 32%, var(--metal-soft) 46%, transparent 60%);
+  background-size: 230% 100%;
+  animation: scanline 1.5s linear infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

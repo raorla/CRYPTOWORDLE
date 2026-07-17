@@ -8,6 +8,13 @@
       name="description"
       content="An on-chain Wordle where the secret word is encrypted inside a TEE via iExec Nox. Only the colors ever come out. First to guess it wins the ETH pot."
     />
+    <meta property="og:title" content="CryptoWordle — the Wordle nobody can cheat" />
+    <meta
+      property="og:description"
+      content="The word is sealed in a TEE on Ethereum Sepolia. Guess it, win the pot — provably fair, trustlessly paid."
+    />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary" />
     <link
       rel="icon"
       href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%238a6d1f' d='M12 2a5 5 0 0 0-5 5v3H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2h-1V7a5 5 0 0 0-5-5Zm-3 5a3 3 0 1 1 6 0v3H9V7Zm3 7a1.75 1.75 0 0 1 .9 3.25V19a.9.9 0 0 1-1.8 0v-1.75A1.75 1.75 0 0 1 12 14Z'/%3E%3C/svg%3E"
@@ -18,8 +25,64 @@
       href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
+    <style>
+      /* Critical fallback: the intro plate is correct even before the
+         extracted stylesheet applies (no flash of unstyled/blank page). */
+      #intro { position: fixed; inset: 0; z-index: 45; background: #f1ecdd; }
+      body[data-theme="dark"] #intro { background: #0d1410; }
+    </style>
   </head>
-  <body>
+  <body class="pre-intro">
+    <script>
+      // Pre-paint: resolve theme + intro mode before first render (no flash).
+      document.body.dataset.theme = localStorage.getItem("cw-theme") || "light";
+      if (sessionStorage.getItem("cw-intro-seen")) document.body.classList.add("intro-seen");
+    </script>
+
+    <!-- The Sealing — static intro/loading veil; paints before the JS bundle,
+         doubles as the real loading screen, dismissed by ui/intro.ts. -->
+    <div id="intro" role="status" aria-label="Loading CryptoWordle">
+      <div class="intro-inner">
+        <div class="intro-kicker">✦&nbsp;&nbsp;iExec Nox · Confidential Compute&nbsp;&nbsp;✦</div>
+        <div class="intro-wordmark">CRYPTO<span>WORDLE</span></div>
+        <div class="intro-subtitle">Certificate of Confidentiality</div>
+        <div class="intro-stage">
+          <div class="intro-disc" aria-hidden="true"></div>
+          <div class="intro-tiles" aria-hidden="true">
+            <div class="intro-tile" style="--d: 0.75s"><span>?</span></div>
+            <div class="intro-tile" style="--d: 0.84s"><span>?</span></div>
+            <div class="intro-tile" style="--d: 0.93s"><span>?</span></div>
+            <div class="intro-tile" style="--d: 1.02s"><span>?</span></div>
+            <div class="intro-tile" style="--d: 1.11s"><span>?</span></div>
+          </div>
+          <div class="intro-seal" aria-hidden="true">
+            <div class="intro-seal-ring">
+              <div class="intro-seal-inner">
+                <svg viewBox="0 0 24 24" width="30" height="30" aria-hidden="true">
+                  <path
+                    fill="currentColor"
+                    d="M12 2a5 5 0 0 0-5 5v3H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2h-1V7a5 5 0 0 0-5-5Zm-3 5a3 3 0 1 1 6 0v3H9V7Zm3 7a1.75 1.75 0 0 1 .9 3.25V19a.9.9 0 0 1-1.8 0v-1.75A1.75 1.75 0 0 1 12 14Z"
+                  />
+                </svg>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div id="intro-caption" class="intro-caption" hidden>The word is sealed</div>
+        <div id="intro-subline" class="intro-subline" hidden>Not the chain · not the server · not us</div>
+        <div class="intro-status">
+          <span class="spinner" aria-hidden="true"></span>
+          <span id="intro-status-text" aria-live="polite">Retrieving round № — · Eth Sepolia</span>
+        </div>
+        <button id="intro-skip" class="intro-skip">Press any key to enter</button>
+      </div>
+      <div class="intro-microprint" aria-hidden="true">
+        the word is mathematically un-leakable while the round is live ·
+        the word is mathematically un-leakable while the round is live ·
+        the word is mathematically un-leakable while the round is live ·
+      </div>
+    </div>
+
     <div class="guilloche guilloche-tl" aria-hidden="true"></div>
     <div class="guilloche guilloche-br" aria-hidden="true"></div>
 
@@ -30,6 +93,7 @@
             Eth Sepolia · Round <span id="round-number" class="round-no">№ —</span>
           </div>
           <div class="util-actions">
+            <button id="btn-records" class="icon-btn" aria-label="Hall of records" title="Hall of records">≣</button>
             <button id="btn-help" class="icon-btn" aria-label="How to play" title="How to play">?</button>
             <button id="btn-sound" class="icon-btn" aria-label="Toggle sound" title="Sound"></button>
             <button id="btn-theme" class="icon-btn" aria-label="Toggle theme" title="Theme"></button>
@@ -100,6 +164,7 @@
         <section class="board-column rise-2">
           <div id="status-line" class="status-line" hidden></div>
           <div id="grid" class="board-plate" role="grid" aria-label="Wordle board"></div>
+          <div id="docket" class="docket" hidden aria-label="Confidential compute progress"></div>
           <div id="toast" class="toast" hidden role="alert"></div>
           <div id="keyboard" class="keyboard rise-4" aria-label="On-screen keyboard"></div>
         </section>
@@ -117,11 +182,13 @@
               </div>
             </div>
             <div id="seal-caption" class="seal-caption">Word sealed in a TEE</div>
+            <div id="audit-line" class="audit-line" hidden></div>
             <p class="seal-copy">
               Encrypted on Sepolia inside iExec Nox. While the round is live,
               <strong>nobody can read it</strong> — not the server, not the devs, not us.
               Hints are computed on ciphertext; only the colours ever decrypt.
             </p>
+            <button id="seal-inspect" class="seal-inspect">Inspect the vault</button>
           </section>
 
           <section class="panel howto-panel">
@@ -157,6 +224,7 @@
         </div>
         <div class="footer-meta">
           <a id="footer-contract-link" href="#" target="_blank" rel="noopener">contract ↗</a>
+          <span class="dot">·</span><a href="#records">hall of records</a>
           <span class="dot">·</span>MIT<span class="dot">·</span>word list from Knuth's Stanford GraphBase
         </div>
       </footer>

@@ -208,6 +208,66 @@ export function renderBanner(state: AppState): void {
       inner.innerHTML = LOCK_SVG;
     }
   }
+
+  // Independent audit verdict (local replay vs the unsealed word).
+  const auditLine = document.getElementById("audit-line");
+  if (auditLine) {
+    if (state.audit && state.audit.colorsChecked > 0 && state.round?.revealedWord) {
+      auditLine.hidden = false;
+      auditLine.classList.toggle("failed", !state.audit.honest);
+      auditLine.textContent = state.audit.honest
+        ? `✓ every hint verified — ${state.audit.colorsChecked} colours replayed`
+        : "✕ audit failed — colours diverge";
+    } else {
+      auditLine.hidden = true;
+    }
+  }
+
+  // While the round is live the vault can be inspected; once revealed the
+  // handles are historic — keep the button only for open rounds.
+  const inspect = document.getElementById("seal-inspect");
+  if (inspect) inspect.hidden = !state.round || state.round.revealedWord !== null;
+}
+
+// ---------------------------------------------------------------------------
+// Enclave docket — the TEE round-trip made visible (I–IV)
+// ---------------------------------------------------------------------------
+
+const DOCKET_STEPS = [
+  "Guess submitted",
+  "Transaction mined",
+  "TDX enclave · ≈95 ciphertext ops",
+  "KMS decrypting colours",
+];
+
+/** Phase → index of the ACTIVE step (steps before it are done). */
+const DOCKET_ACTIVE: Record<string, number> = { sealing: 0, computing: 2, decrypting: 3 };
+
+export function renderDocket(state: AppState): void {
+  const docket = document.getElementById("docket");
+  if (!docket) return;
+  const active = DOCKET_ACTIVE[state.phase];
+  if (active === undefined) {
+    docket.hidden = true;
+    return;
+  }
+  const wasHidden = docket.hidden;
+  docket.hidden = false;
+  // Rebuild only on phase change (keyed by active index) so the scanline and
+  // stamp animations don't restart on every store update.
+  if (!wasHidden && docket.dataset.active === String(active)) return;
+  docket.dataset.active = String(active);
+  const romans = ["I.", "II.", "III.", "IV."];
+  docket.innerHTML = DOCKET_STEPS.map((label, i) => {
+    const stateClass = i < active ? "done" : i === active ? "active" : "";
+    const mark =
+      i < active
+        ? `<span class="docket-mark">✓</span>`
+        : i === active
+          ? `<span class="docket-mark"><span class="spinner"></span></span>`
+          : `<span class="docket-mark"></span>`;
+    return `<div class="docket-step ${stateClass}"><span class="roman">${romans[i]}</span>${mark}<span>${label}</span></div>`;
+  }).join("");
 }
 
 export function renderCountdown(state: AppState): void {

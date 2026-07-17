@@ -1,5 +1,6 @@
 import type { Hex } from "viem";
 import { VALID_GUESSES } from "../../shared/words.ts";
+import { auditRows } from "./audit.ts";
 import {
   readGuesses,
   readRound,
@@ -12,6 +13,7 @@ import {
 } from "./chain.ts";
 import { MAX_GUESSES, POLL_MS, WORD_LENGTH } from "./config.ts";
 import { publicDecryptWithRetry } from "./nox.ts";
+import { invalidateRecords } from "./records.ts";
 import {
   absorbIntoKeyboard,
   getState,
@@ -55,8 +57,10 @@ export async function loadLatestRound(): Promise<void> {
       keyboard: {},
       typed: "",
       statusNote: null,
+      audit: null,
       phase: getState().account ? "idle" : "no-wallet",
     });
+    invalidateRecords();
     events.emit("new-round");
   }
   currentRoundId = roundId;
@@ -92,6 +96,12 @@ async function doRefresh(): Promise<void> {
     guessCount: raw.guessCount,
     revealedWord: state.round?.id === currentRoundId ? state.round.revealedWord : null,
   };
+
+  // The 30s archive cache must not outlive a settle — reopening the Hall of
+  // Records right after a claim/expiry would otherwise show the round as Open.
+  if (round.status !== 0 && state.round?.id === currentRoundId && state.round.status === 0) {
+    invalidateRecords();
+  }
 
   const guesses = await readGuesses(currentRoundId);
   const mine: GuessRow[] = [];
@@ -359,7 +369,10 @@ async function onRoundSettled(round: RoundView, guesses: GuessRaw[]): Promise<vo
         phase === "solved-by-other" || phase === "expired"
           ? "Round settled — the word is unsealed for audit."
           : getState().statusNote;
-      update({ round: { ...getState().round!, revealedWord }, statusNote: settledNote });
+      // Provable fairness, executed: replay every decrypted colour of my rows
+      // against the unsealed word. Any divergence would expose a dishonest TEE.
+      const audit = auditRows(revealedWord, getState().myRows);
+      update({ round: { ...getState().round!, revealedWord }, statusNote: settledNote, audit });
       events.emit("revealed", { word: revealedWord, guesses });
     }
   }

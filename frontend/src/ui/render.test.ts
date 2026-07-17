@@ -5,6 +5,7 @@ import {
   buildKeyboard,
   renderBanner,
   renderCountdown,
+  renderDocket,
   renderGrid,
   renderKeyboard,
   renderStatus,
@@ -21,6 +22,7 @@ const base: AppState = {
   keyboard: {},
   statusNote: null,
   error: null,
+  audit: null,
 };
 
 const guess = (letters: string, colors: (Color | null)[], win: boolean | null = null): GuessRow => ({
@@ -53,7 +55,10 @@ beforeEach(() => {
     <div id="grid"></div>
     <div id="keyboard"></div>
     <div id="seal-ring"><div id="seal-inner"><svg class="seal-lock"></svg></div></div>
-    <div id="seal-caption"></div>`;
+    <div id="seal-caption"></div>
+    <div id="audit-line" hidden></div>
+    <button id="seal-inspect"></button>
+    <div id="docket" hidden></div>`;
   buildGrid(document.getElementById("grid")!);
   buildKeyboard(document.getElementById("keyboard")!, () => {});
 });
@@ -151,5 +156,62 @@ describe("side panels", () => {
     expect(document.getElementById("countdown-value")!.textContent).toBe("settled");
     renderCountdown({ ...base, round: round({ status: 2 }) });
     expect(document.getElementById("countdown-value")!.textContent).toBe("expired");
+  });
+
+  it("stamps the audit verdict on the seal panel once the word is unsealed", () => {
+    const line = document.getElementById("audit-line")!;
+    renderBanner({ ...base, round: round() });
+    expect(line.hidden).toBe(true);
+
+    renderBanner({
+      ...base,
+      round: round({ revealedWord: "vapor", status: 1 }),
+      audit: { checked: 2, colorsChecked: 10, honest: true },
+    });
+    expect(line.hidden).toBe(false);
+    expect(line.textContent).toContain("every hint verified");
+    expect(line.classList.contains("failed")).toBe(false);
+  });
+
+  it("hides the vault inspector once the round is revealed", () => {
+    const inspect = document.getElementById("seal-inspect")!;
+    renderBanner({ ...base, round: round() });
+    expect(inspect.hidden).toBe(false);
+    renderBanner({ ...base, round: round({ revealedWord: "vapor", status: 1 }) });
+    expect(inspect.hidden).toBe(true);
+  });
+});
+
+describe("enclave docket", () => {
+  const docket = () => document.getElementById("docket")!;
+
+  it("hides outside the TEE round-trip", () => {
+    renderDocket({ ...base, phase: "idle" });
+    expect(docket().hidden).toBe(true);
+    renderDocket({ ...base, phase: "won" });
+    expect(docket().hidden).toBe(true);
+  });
+
+  it("walks the four steps as the phase advances", () => {
+    renderDocket({ ...base, phase: "sealing" });
+    expect(docket().hidden).toBe(false);
+    let steps = docket().querySelectorAll(".docket-step");
+    expect(steps).toHaveLength(4);
+    expect(steps[0].classList.contains("active")).toBe(true);
+    expect(steps[1].classList.contains("done")).toBe(false);
+
+    renderDocket({ ...base, phase: "computing" });
+    steps = docket().querySelectorAll(".docket-step");
+    expect(steps[0].classList.contains("done")).toBe(true);
+    expect(steps[1].classList.contains("done")).toBe(true);
+    expect(steps[2].classList.contains("active")).toBe(true);
+
+    renderDocket({ ...base, phase: "decrypting" });
+    steps = docket().querySelectorAll(".docket-step");
+    expect(steps[2].classList.contains("done")).toBe(true);
+    expect(steps[3].classList.contains("active")).toBe(true);
+
+    renderDocket({ ...base, phase: "idle" });
+    expect(docket().hidden).toBe(true);
   });
 });

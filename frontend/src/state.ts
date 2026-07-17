@@ -47,6 +47,8 @@ export interface AppState {
   keyboard: Record<string, Color>; // best-known color per letter
   statusNote: string | null; // human-readable async state line
   error: string | null;
+  /** Post-reveal honesty audit: local replay of my rows vs the unsealed word. */
+  audit: { checked: number; colorsChecked: number; honest: boolean } | null;
 }
 
 type Listener = (state: AppState) => void;
@@ -62,6 +64,7 @@ const state: AppState = {
   keyboard: {},
   statusNote: null,
   error: null,
+  audit: null,
 };
 
 const listeners = new Set<Listener>();

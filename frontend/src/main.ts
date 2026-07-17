@@ -11,12 +11,16 @@ import {
 import { getState, subscribe, update } from "./state.ts";
 import { events } from "./ui/events.ts";
 import { launchConfetti } from "./ui/confetti.ts";
+import { startIntro } from "./ui/intro.ts";
 import {
+  close as closeModal,
   fillRevealedWord,
   showHelpModal,
   showNotDeployedModal,
   showPaidModal,
+  showRecordsModal,
   showRoundOverModal,
+  showVaultModal,
   showWinModal,
 } from "./ui/modals.ts";
 import {
@@ -24,6 +28,7 @@ import {
   buildKeyboard,
   renderBanner,
   renderCountdown,
+  renderDocket,
   renderGrid,
   renderKeyboard,
   renderStatus,
@@ -65,6 +70,25 @@ themeBtn.addEventListener("click", () => {
   themeBtn.textContent = toggleTheme() === "dark" ? "☾" : "☀";
 });
 helpBtn.addEventListener("click", showHelpModal);
+
+// Hall of records: hash-routed (#records) so it's deep-linkable and the
+// browser back button closes it. All modal close paths clear the hash.
+const recordsBtn = document.getElementById("btn-records") as HTMLButtonElement;
+recordsBtn.addEventListener("click", showRecordsModal);
+window.addEventListener("hashchange", () => {
+  const recordsOpen = document.querySelector(".modal.modal-wide") !== null;
+  if (location.hash === "#records") {
+    if (!recordsOpen) showRecordsModal();
+  } else if (recordsOpen) {
+    closeModal();
+  }
+});
+
+// The vault inspector: the secret's five sealed handles, as the chain sees them.
+document.getElementById("seal-inspect")?.addEventListener("click", () => {
+  const round = getState().round;
+  if (round) showVaultModal(round.id);
+});
 
 // The win/claim flow's only trigger is the certificate modal, shown once. If a
 // claim fails (or the modal is dismissed), the phase returns to "won" — make
@@ -153,6 +177,7 @@ subscribe((state) => {
   renderKeyboard(state);
   renderBanner(state);
   renderStatus(state);
+  renderDocket(state);
 
   const hintActive =
     connectBtn.matches(":hover") || document.activeElement === connectBtn;
@@ -220,10 +245,16 @@ events.on("new-round", () => {
 // ---------------------------------------------------------------------------
 
 if (!isDeployed) {
+  // The intro must never cover the setup instructions.
+  startIntro(Promise.resolve()).dismiss();
   showNotDeployedModal();
 } else {
   update({ phase: "no-wallet" });
-  void loadLatestRound()
+  const load = loadLatestRound();
+  // "The Sealing" — the veil doubles as the real loading screen; its seal
+  // slam is gated on this promise settling (see ui/intro.ts).
+  const intro = startIntro(load);
+  void load
     .then(() => {
       startPolling();
       if (!getState().account) {
@@ -237,4 +268,8 @@ if (!isDeployed) {
     .catch((error) => {
       showToast(`Failed to load round: ${`${error?.message ?? error}`.slice(0, 80)}`);
     });
+  // Deep link: #records opens the registry once the veil has lifted.
+  if (location.hash === "#records") {
+    void intro.done.then(showRecordsModal);
+  }
 }
