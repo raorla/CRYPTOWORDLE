@@ -7,7 +7,7 @@ _Last updated: 2026-07-17._
 ## Must-have (submission-blocking)
 
 - [x] **Deploy the frontend to a public, playable URL.** Live at <https://raorla.github.io/CRYPTOWORDLE/> — GitHub Pages, rebuilt and redeployed on every push to `main` by `.github/workflows/deploy-pages.yml` (Vite `base: "./"` makes the bundle path-independent). Still to do: add the URL to the demo end card.
-- [ ] **Keep a live, funded round open on Sepolia during judging.** Run `npm run round:daemon` (pot from `ROUND_POT_ETH`, funded deployer key) so the public app is actually playable and the pot is real. Confirm the daemon points at the address in `deployments/sepolia.json`.
+- [x] **Keep a live, funded round open on Sepolia during judging.** The daemon runs as a systemd user service on the dev machine: `~/.config/systemd/user/cryptowordle-daemon.service` (`Restart=always`, lingering enabled so it survives logout — the machine just has to stay on). It points at `deployments/sepolia.json`, keeps a 0.01 ETH / 24h round open, cranks claims and expiries. Watch it: `journalctl --user -u cryptowordle-daemon -f`. If the machine can't stay on during judging, move it to a small VPS the day before.
 - [ ] **Record the ≤4:00 demo video** following `docs/demo-video-script.md` (updated for the certificate UI — new beats available: The Sealing intro, the Vault Inspector, the Hall of Records, the Enclave Docket, the audit strip). Stage everything per the shot checklist; do not fake the KMS-wait states.
 - [ ] **Fill the submission page**: play URL + repo + contract address (from `deployments/sepolia.json`) + the tooling write-up in `feedback.md` (a plus for the sponsor track).
 
