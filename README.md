@@ -6,9 +6,27 @@ The secret five-letter word lives on ETH Sepolia as five encrypted handles insid
 
 When the round ends, the word is revealed publicly so anyone can check that every hint handed out was honest. Provable fairness, end to end.
 
-- 10/10 integration tests passing against the **real** local Nox stack (KMS + gateway + TDX runner in Docker) — no mocks anywhere.
+- 16/16 integration tests passing against the **real** local Nox stack (KMS + gateway + TDX runner in Docker) — no mocks anywhere.
 - Trustless claims: anyone can crank `claim()`; the pot always pays the player who made the winning guess.
 - Un-leakability is *asserted in tests*, not just promised: the ACL of every secret-letter handle is checked on the NoxCompute contract.
+- The frontend closes the loop: when a round ends, it **replays every hint it was given against the revealed word, client-side** (`frontend/src/audit.ts`) and stamps the verdict on screen — provable fairness you can watch happen.
+
+---
+
+## Verify every claim yourself (reviewers — human or AI — start here)
+
+Nothing in this README asks for trust. Each claim maps to something you can run, read, or click:
+
+| Claim | Where it's proven |
+|-------|-------------------|
+| The secret is un-leakable while a round is Open | `npm test` → *"keeps the secret mathematically un-leakable while the round is Open"* — asserts `isAllowed`/`isViewer`/`isPubliclyDecryptable` on the NoxCompute contract for every secret handle ([test/integration/cryptowordle.test.ts](test/integration/cryptowordle.test.ts)) |
+| Hints are computed on ciphertext; only colors ever decrypt | `npm test` → *"computes Wordle colors on ciphertext — only colors come out"* |
+| Settlement is trustless; forged proofs revert | `npm test` → *"detects the winning guess and pays the pot trustlessly via KMS proof"* and *"rejects claims backed by a losing guess or a forged proof"* |
+| Every hint handed out was honest | Post-round reveal + client-side replay: [frontend/src/audit.ts](frontend/src/audit.ts) re-scores every guess against the unsealed word with the exact contract semantics (pinned in [frontend/src/audit.test.ts](frontend/src/audit.test.ts), duplicate-letter rule included) |
+| The pot money is real and escrowed on-chain | [Blockscout balance + Read Contract](https://eth-sepolia.blockscout.com/address/0xaa6f76b4dc7d2df17ff73c7162523f0985289fc9) · invariant `balance == treasury + Σ open pots` pinned by `npm test` → *"opens rounds from the treasury and keeps the balance invariant"* ([test/integration/treasury.test.ts](test/integration/treasury.test.ts)) |
+| It runs on the live testnet, end to end | Linked create → guess → claim → reveal transactions in [Deployed addresses](#deployed-addresses-eth-sepolia) below, plus `npm run sanity:sepolia` to reproduce the whole loop yourself |
+
+No Docker handy? The fast tiers run in seconds: `npm run test:unit` (7) and `cd frontend && npm test` (55, Vitest) — the integration suite (16 tests against the real KMS/TEE stack in Docker) takes a few minutes. [CLAUDE.md](CLAUDE.md) maps the whole codebase for AI-assisted review.
 
 ---
 
@@ -78,7 +96,7 @@ npm install
 The `@iexec-nox/nox-hardhat-plugin` boots the entire Nox off-chain stack (KMS, handle gateway, TDX runner, NATS, MinIO) in Docker, deploys NoxCompute on a local node, and runs the tests end-to-end against it — genuine encryption, genuine KMS proofs:
 
 ```bash
-npm test          # 10 integration tests; first run pulls Docker images (slow)
+npm test          # 16 integration tests (+ the gas probe); first run pulls Docker images (slow)
 ```
 
 A single guess emits ~95 TEE ops executed sequentially by the local runner, so the suite takes several minutes. On failure, stack logs land in `offchain-services.log`.
@@ -129,6 +147,16 @@ npm run dev            # Vite dev server; connect MetaMask on Sepolia
 4. You get **six guesses per wallet per round**. Guess the word — all five green — and the round-generator daemon (or anyone, including you) submits `claim` with the KMS proof. The pot pays your wallet directly.
 5. If nobody wins before the deadline (+15-minute claim grace period), the round expires, the pot refunds the creator, and the word is revealed either way — check that the hints were honest.
 
+### The frontend makes the confidentiality *visible*
+
+The UI is a "Treasury Certificate" — and every ornament is backed by a real on-chain read:
+
+- **The Sealing** — the loading veil's seal only slams once the round has actually been read from the chain (never a fake progress bar); any key enters.
+- **The Vault Inspector** — one click under the seal shows the five sealed `bytes32` handles, live from `getSecretHandles`. You are looking at the secret — and you still cannot read it.
+- **The Enclave Docket** — an I–IV stepper tracks each guess through its real round-trip: sealed → mined → ~95 ciphertext ops in the TDX enclave → KMS colour decryption.
+- **The independent audit** — when the word unseals, the client replays every colour it was ever shown against it and stamps the verdict ("15 of 15 colours verified honest") on the seal panel. A dishonest TEE would be caught in your own browser.
+- **The Hall of Records** (`#records`) — champions and the full round archive, built purely from view functions in one multicall; open-pot totals only, because settled pots are zeroed on-chain and we don't display numbers we can't prove.
+
 ### A note on gas
 
 Wallets and RPCs cannot estimate gas for transactions that touch the Nox precompile — MetaMask defaults to roughly the block gas limit, which public RPCs reject. Every Nox-touching write in this repo sets explicit gas, based on measurements from the local coprocessor (`test/integration/gas-probe.test.ts`):
@@ -168,17 +196,20 @@ Classic Wordle colors duplicate letters with a per-letter budget: if the secret 
 |------|-----------|
 | `contracts/CryptoWordle.sol` | The game: encrypted secret, on-ciphertext hints, trustless claims, post-round reveal |
 | `test/integration/cryptowordle.test.ts` | 10 end-to-end tests against the real local Nox stack (colors, ACL un-leakability, claims, forged proofs, expiry, guess limit) |
+| `test/integration/treasury.test.ts` | 6 tests on the on-chain bankroll: deposits, treasurer-only rounds, the balance invariant, expiry-to-treasury refunds |
 | `test/integration/gas-probe.test.ts` | Measures real gas per function for the explicit-gas budgets |
 | `test/utils/handle-gateway.ts` | Polls the handle gateway until a ciphertext materialises |
 | `service/roundGenerator.ts` | Picks, seals and posts the secret word; daemon mode cranks claims and reopens rounds |
 | `service/common.ts` | Shared plumbing: viem + Nox handle clients, gas budgets, KMS retry wrapper |
 | `scripts/deploy.ts` | Deploys to Sepolia, records `deployments/sepolia.json` |
+| `scripts/fund-treasury.ts` | Escrows the house bankroll on-chain (`npm run treasury:fund -- <eth>`) |
 | `scripts/sanity-check.ts` | Full confidential loop on the live testnet |
 | `scripts/export-abi.ts` | Regenerates `shared/abi.ts` from the compiled artifact |
 | `shared/words.ts` | 1,500 answers + 5,757 valid guesses (Knuth SGB, public domain) |
 | `shared/abi.ts` | Committed ABI so the frontend builds without compiling |
-| `frontend/` | Vite + TypeScript + viem dApp (MetaMask, no framework) |
-| `deployments/sepolia.json` | Deployed address record (placeholder until deploy) |
+| `frontend/` | Vite + TypeScript + viem dApp (MetaMask, no framework) — 55 Vitest + 6 Playwright tests |
+| `frontend/src/audit.ts` | The client-side fairness audit: replays every hint against the revealed word |
+| `deployments/sepolia.json` | Deployed address record — single source of truth for the frontend and services |
 
 **Stack:** Solidity 0.8.35 (viaIR, cancun) · Hardhat 3 (ESM, Node 22+) · `@iexec-nox/nox-protocol-contracts` 0.2.4 · `@iexec-nox/handle` 0.1.0-beta.13 · `@iexec-nox/nox-hardhat-plugin` 0.1.0 · viem · Vite.
 

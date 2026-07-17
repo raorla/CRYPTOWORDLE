@@ -22,6 +22,7 @@ All commands run from the repo root unless noted. **Node 22+ required** (scripts
 | Deploy to Sepolia | `npm run deploy:sepolia` |
 | Regenerate frontend ABI | `npm run export-abi` |
 | Live-testnet end-to-end probe | `npm run sanity:sepolia` |
+| Fund the on-chain treasury | `npm run treasury:fund -- <eth>` |
 | Create one round | `npm run round:create` |
 | Round-keeper daemon | `npm run round:daemon` |
 | Frontend dev server | `cd frontend && npm run dev` |
@@ -29,12 +30,12 @@ All commands run from the repo root unless noted. **Node 22+ required** (scripts
 
 There is **no linter**. Tests come in three tiers:
 
-- **Unit** — `npm run test:unit` (root, `node --test test/unit/*.test.ts`): pure logic, no Docker/network. `frontend/` has its own unit + component layer via Vitest + jsdom (`cd frontend && npm test`) covering the store, the idempotent DOM renderer and the certificate modals.
-- **Integration** — `npm test` (Hardhat 3 + real Nox stack, see below).
+- **Unit** — `npm run test:unit` (root, `node --test test/unit/*.test.ts`): pure logic, no Docker/network. `frontend/` has its own unit + component layer via Vitest + jsdom (`cd frontend && npm test`, 55 tests) covering the store, the idempotent DOM renderer, the certificate modals, the intro controller, the records aggregation/cache and the fairness-audit replay.
+- **Integration** — `npm test` (Hardhat 3 + real Nox stack, see below): 10 game tests (`cryptowordle.test.ts`) + 6 treasury tests (`treasury.test.ts`).
 - **E2E** — `cd frontend && npm run test:e2e` (Playwright): boots the built bundle and smoke-tests the UI shell (render, help modal, theme toggle) — no wallet/chain, so the on-chain guess/claim flow stays covered by integration. One-time: `npx playwright install chromium`.
 
 ### About `npm test` (integration)
-`npm test` boots the **entire real Nox off-chain stack in Docker** (KMS, handle gateway, TDX runner, NATS, MinIO) via `@iexec-nox/nox-hardhat-plugin` — no mocks. First run pulls large images (slow); a single guess executes ~95 TEE ops sequentially, so the suite takes several minutes. On failure, stack logs land in `offchain-services.log`. Requires Docker running. `test/integration/gas-probe.test.ts` is separate from the main `cryptowordle.test.ts` suite and only measures per-function gas. Bare `hardhat test` also discovers `test/unit/` — that's harmless (those tests need no Docker), but `npm run test:unit` is the fast Docker-free path.
+`npm test` boots the **entire real Nox off-chain stack in Docker** (KMS, handle gateway, TDX runner, NATS, MinIO) via `@iexec-nox/nox-hardhat-plugin` — no mocks. First run pulls large images (slow); a single guess executes ~95 TEE ops sequentially, so the suite takes several minutes. On failure, stack logs land in `offchain-services.log`. Requires Docker running. `test/integration/gas-probe.test.ts` is separate from the game/treasury suites and only measures per-function gas. Bare `hardhat test` also discovers `test/unit/` — that's harmless (those tests need no Docker), but `npm run test:unit` is the fast Docker-free path.
 
 ### Environment (`.env`, see `.env.example`)
 `SEPOLIA_RPC_URL` and `DEPLOYER_PRIVATE_KEY` (fresh funded dev key) are required for any deploy/service/sanity command. `ROUND_POT_ETH` / `ROUND_DURATION_SECONDS` configure the round generator. `CRYPTOWORDLE_ADDRESS` overrides the deployed address from `deployments/sepolia.json`.
@@ -60,9 +61,12 @@ So the correct sequence after editing the contract is: `npm run compile` → `np
 ### Frontend internals (`frontend/src/`)
 - `chain.ts` — viem read/write; reads work over a public RPC **without a wallet**, writes and decryption need a connected wallet (`nox.ts` handle client is wallet-backed).
 - `state.ts` — tiny observable store (`getState`/`update`/`subscribe`); `Phase` union drives the whole UI.
-- `game.ts` — orchestration: round loading, 12s polling, per-tile color decryption (fire-and-forget, each tile paints as its handle decrypts), win detection, claim flow, post-round reveal.
-- `ui/render.ts` — **idempotent** DOM mutation (grid/keyboard built once, mutated in place so CSS animations survive re-renders); `ui/events.ts` is a typed event bus for juice (sound/confetti/animations); `ui/modals.ts`, `theme.ts`, `sound.ts`, `confetti.ts`.
-- `main.ts` — wires DOM ↔ store ↔ game. The UI is a "Treasury Certificate" visual theme (light default / dark alternate); design references live in `CryptoWordle design improvement/`.
+- `game.ts` — orchestration: round loading, 12s polling, per-tile color decryption (fire-and-forget, each tile paints as its handle decrypts), win detection, claim flow, post-round reveal + fairness audit.
+- `audit.ts` — client-side fairness audit: replays every decrypted colour against the revealed word with exact contract semantics (incl. the duplicate-letter rule).
+- `records.ts` — Hall-of-Records data layer: full round archive via ONE `getRound` multicall over view functions (never `eth_getLogs`), 30s cache invalidated on round transitions (`invalidateRecords`). Settled pots are zeroed on-chain — only open pots are summable.
+- `ui/intro.ts` — "The Sealing" loading veil: static HTML in `index.html` paints before the JS bundle; the seal slam is gated on the real chain read; any-key skip (browser chords/F5 pass through); session-aware; sequencing is setTimeout-only (reduced-motion flattens animations, so animation events would race).
+- `ui/render.ts` — **idempotent** DOM mutation (grid/keyboard built once, mutated in place so CSS animations survive re-renders); `ui/events.ts` is a typed event bus for juice (sound/confetti/animations); `ui/modals.ts` (help, win, records, vault inspector), `theme.ts`, `sound.ts`, `confetti.ts`.
+- `main.ts` — wires DOM ↔ store ↔ game; hash-routes `#records`. The UI is a "Treasury Certificate" visual theme (light default / dark alternate).
 
 ### Notable behaviors
 - **Duplicate-letter simplification**: Nox lacks encrypted OR / per-position budgets, so "present" is a counting argument — *every* duplicate guess letter shows yellow if the letter appears anywhere in the secret (differs from classic Wordle, never affects the all-green win). Pinned by a dedicated test.

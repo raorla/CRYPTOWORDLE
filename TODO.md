@@ -1,6 +1,6 @@
 # TODO — CryptoWordle (iExec WTF hackathon)
 
-The contract, services, tests and frontend are **done and deployed** (Sepolia `0xaa6f…9fc9`, 10/10 integration tests, certificate UI + intro + records). What's left is submission-facing. Ordered by priority.
+The contract, services, tests and frontend are **done and deployed** (Sepolia `0xaa6f…9fc9`, 16/16 integration tests, certificate UI + intro + records). What's left is submission-facing. Ordered by priority.
 
 _Last updated: 2026-07-17._
 
@@ -25,7 +25,7 @@ _Last updated: 2026-07-17._
 ## Tests (all green)
 
 - [x] **Unit** — `npm run test:unit` (word-list integrity + letter codec, 7) and `cd frontend && npm test` (Vitest + jsdom, 52: store, renderer, modals, intro controller, records aggregation/modal, audit replay).
-- [x] **Integration** — `npm test` (unchanged: 10 end-to-end tests against the real Nox Docker stack).
+- [x] **Integration** — `npm test` (16 end-to-end tests against the real Nox Docker stack: 10 game + 6 treasury, plus the gas probe).
 - [x] **E2E** — `cd frontend && npm run test:e2e` (Playwright, 6: intro skip, shell, help modal, theme, connect CTA, hash-routed records). Future: a wallet/chain-mocked e2e to drive the full guess→win→claim flow in-browser.
 
 ## Nice-to-have
