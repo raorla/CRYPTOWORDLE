@@ -1,0 +1,10 @@
+{
+  // The frontend build transforms these files, and esbuild resolves the
+  // NEAREST tsconfig for them. Without this file it climbs to the repo-root
+  // config, whose "extends" only resolves when the ROOT node_modules is
+  // installed — which CI (Pages deploy) and fresh frontend-only clones don't
+  // have. Root `tsc --noEmit` ignores this file (it uses the root project).
+  "compilerOptions": {
+    "target": "es2022"
+  }
+}
