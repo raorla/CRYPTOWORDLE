@@ -2,6 +2,12 @@
 
 **A Wordle nobody can cheat — not even us.**
 
+**▶ Play it live: <https://raorla.github.io/CRYPTOWORDLE/>** — ETH Sepolia; spectating needs no wallet, playing needs MetaMask with Sepolia ETH.
+
+![The Sealing — the word is locked in a TEE before you may enter](docs/media/hero-sealing.png)
+
+![The playing certificate: live pot, sealed-word seal, enclave docket](docs/media/hero-board.png)
+
 The secret five-letter word lives on ETH Sepolia as five encrypted handles inside [iExec Nox](https://docs.iex.ec/), a TEE-based confidential compute layer (Intel TDX — not FHE). While a round is open, the *only* principal with access to those handles is the game contract itself. Not the server that created the round. Not the people who wrote this code. Not the players. Nobody on Earth can read the word — yet every guess gets its green/yellow/grey hints computed **on ciphertext**, and when someone wins, the pot pays out **trustlessly**, settled by a KMS decryption proof verified on-chain.
 
 When the round ends, the word is revealed publicly so anyone can check that every hint handed out was honest. Provable fairness, end to end.
